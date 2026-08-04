@@ -26,6 +26,7 @@
   button.tog.on { background:var(--accent); color:#fff; border-color:var(--accent); }
   .scenetable-box { max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
   .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
+  .gallery.vids { grid-template-columns:1fr; max-width:1100px; }
   .card { background:var(--card); border-radius:10px; overflow:hidden; }
   .card .imgs { display:grid; grid-template-columns:1fr 1fr; gap:2px; }
   .card img { width:100%; aspect-ratio:3/2; object-fit:cover; display:block; }
@@ -67,9 +68,9 @@
   </div>
   <div class="scenetable-box"><table id="scenes"></table></div>
 
-  <h2>Gallery — rendered reconstruction vs. photo (held-out view)</h2>
-  <div class="controls"><span class="note">showing the run selected above · click any card to open the interactive 3D viewer</span></div>
-  <div class="gallery" id="gallery"></div>
+  <h2>Gallery — interior walkthroughs (pred 8 views | pred 32 views | ground truth)</h2>
+  <div class="controls"><span class="note">videos autoplay as you scroll · camera follows the smoothed real capture trajectory · "open 3D" gives the interactive viewer</span></div>
+  <div class="gallery vids" id="gallery"></div>
 </div>
 
 <script>
@@ -116,16 +117,23 @@ function sceneRows() {
   });
 }
 
+const HF_VID = "https://huggingface.co/datasets/jasonwwwwzr/complete3d-results/resolve/main/videos/scannetpp";
+let vidObserver = null;
 function gallery() {
   const run = document.getElementById("runsel").value;
   document.getElementById("gallery").innerHTML = Object.keys(DATA.scenes).sort().map(id => `
-    <div class="card" onclick="location='viewer.html?scene=${id}&run=${run}'" style="cursor:pointer">
-      <div class="imgs">
-        <div><img loading="lazy" src="gallery/${run}/${id}_render.jpg" alt=""><div class="lbl">reconstruction</div></div>
-        <div><img loading="lazy" src="gallery/${run}/${id}_photo.jpg" alt=""><div class="lbl">photo</div></div>
-      </div>
-      <div class="cap"><span>${id}</span><a>open 3D ↗</a></div>
+    <div class="card">
+      <video muted loop playsinline preload="none" poster="gallery/${run}/${id}_render.jpg"
+             data-src="${HF_VID}/${id}.mp4" style="width:100%;display:block;aspect-ratio:4.5/1;object-fit:cover;background:#eee"></video>
+      <div class="cap"><span>${id}</span><a href="viewer.html?scene=${id}&run=${run}">open 3D ↗</a></div>
     </div>`).join("");
+  if (vidObserver) vidObserver.disconnect();
+  vidObserver = new IntersectionObserver(entries => entries.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(()=>{}); }
+    else v.pause();
+  }), { rootMargin: "200px" });
+  document.querySelectorAll("#gallery video").forEach(v => vidObserver.observe(v));
 }
 
 fetch("data/metrics_scannetpp.json").then(r => r.json()).then(d => {
