@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complete3D — Scene Viewer</title>
+<style>
+  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#fff; }
+  * { box-sizing:border-box; } html, body { height:100%; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); display:flex; flex-direction:column; }
+  header { display:flex; gap:.9rem; align-items:center; padding:.6rem 1rem; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header a { color:var(--accent); text-decoration:none; font-size:.9rem; }
+  #scene-id { font-weight:600; }
+  .seg { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { border:0; background:var(--bg); padding:.4rem .8rem; cursor:pointer; font-size:.85rem; }
+  .seg button.on { background:var(--accent); color:#fff; }
+  #status { color:var(--muted); font-size:.85rem; }
+  #canvas-box { flex:1; min-height:0; position:relative; }
+  canvas { display:block; }
+  #metrics { position:absolute; top:.6rem; left:.6rem; background:rgba(255,255,255,.88); border:1px solid var(--line); border-radius:8px; padding:.5rem .7rem; font-size:.8rem; line-height:1.5; }
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">← results</a>
+  <span id="scene-id"></span>
+  <div class="seg" id="srcsel">
+    <button data-src="genrecon_dslr_8views">pred · 8 views</button>
+    <button data-src="genrecon_dslr_32views">pred · 32 views</button>
+    <button data-src="gt">ground truth</button>
+  </div>
+  <span id="status">loading…</span>
+</header>
+<div id="canvas-box"><div id="metrics" hidden></div></div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "./vendor/GLTFLoader.js";
+import { OrbitControls } from "./vendor/OrbitControls.js";
+
+const HF = "https://huggingface.co/datasets/jasonwwwwzr/complete3d-results/resolve/main/scannetpp";
+const params = new URLSearchParams(location.search);
+const scene_id = params.get("scene") || "dbd2a5961f";
+let src = params.get("run") || "genrecon_dslr_8views";
+document.getElementById("scene-id").textContent = scene_id;
+
+const box = document.getElementById("canvas-box");
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(devicePixelRatio);
+box.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf2f2f4);
+const camera = new THREE.PerspectiveCamera(55, 1, 0.05, 300);
+const controls = new OrbitControls(camera, renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xcfd4dc, 2.6));
+const dir = new THREE.DirectionalLight(0xffffff, 1.2); dir.position.set(3, 6, 2); scene.add(dir);
+
+function resize() {
+  const w = box.clientWidth, h = box.clientHeight;
+  renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize);
+
+let current = null;
+const cache = {};
+const status = document.getElementById("status");
+
+async function load(name) {
+  src = name;
+  document.querySelectorAll("#srcsel button").forEach(b => b.classList.toggle("on", b.dataset.src === name));
+  if (current) { scene.remove(current); current = null; }
+  status.textContent = "loading…";
+  try {
+    if (!cache[name]) {
+      const gltf = await new GLTFLoader().loadAsync(`${HF}/${name}/${scene_id}.glb`);
+      gltf.scene.traverse(o => {
+        if (o.isMesh) o.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, metalness: 0 });
+      });
+      cache[name] = gltf.scene;
+    }
+    current = cache[name];
+    scene.add(current);
+    if (!load.framed) {
+      const bb = new THREE.Box3().setFromObject(current);
+      const c = bb.getCenter(new THREE.Vector3()), size = bb.getSize(new THREE.Vector3()).length();
+      controls.target.copy(c);
+      camera.position.copy(c).add(new THREE.Vector3(size*.35, size*.4, size*.35));
+      camera.near = size/500; camera.far = size*10; camera.updateProjectionMatrix();
+      load.framed = true;
+    }
+    status.textContent = "";
+  } catch (e) {
+    status.textContent = `failed to load ${name}: ${e.message || e}`;
+  }
+}
+
+document.querySelectorAll("#srcsel button").forEach(b => b.onclick = () => load(b.dataset.src));
+
+fetch("data/metrics_scannetpp.json").then(r => r.json()).then(d => {
+  const s = d.scenes[scene_id]; if (!s) return;
+  const el = document.getElementById("metrics"); el.hidden = false;
+  const row = (r, name) => r ? `<b>${name}</b>: CD ${r["3d"].chamfer} · F ${r["3d"].fscore} · NC ${r["3d"].normal_consistency}<br>` : "";
+  el.innerHTML = row(s.genrecon_dslr_8views, "8v") + row(s.genrecon_dslr_32views, "32v");
+});
+
+resize();
+load(src);
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>

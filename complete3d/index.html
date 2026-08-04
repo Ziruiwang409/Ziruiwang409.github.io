@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complete3D — GenRecon Benchmark (ScanNet++)</title>
+<style>
+  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
+  .wrap { max-width:1200px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+  h1 { font-size:1.7rem; margin:.2rem 0 .3rem; }
+  h2 { font-size:1.2rem; margin:2.2rem 0 .6rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; }
+  .sub { color:var(--muted); font-size:.95rem; margin-bottom:1rem; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; }
+  .headline table { width:auto; }
+  th, td { padding:.4rem .7rem; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { border-bottom:2px solid var(--fg); cursor:pointer; user-select:none; }
+  tbody tr:hover { background:var(--card); }
+  .best { font-weight:600; color:var(--accent); }
+  .note { color:var(--muted); font-size:.85rem; margin:.4rem 0 0; }
+  .controls { margin:.6rem 0 1rem; display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; }
+  input[type=search] { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; min-width:220px; }
+  select, button.tog { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; background:var(--bg); cursor:pointer; }
+  button.tog.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .scenetable-box { max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+  .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
+  .card { background:var(--card); border-radius:10px; overflow:hidden; }
+  .card .imgs { display:grid; grid-template-columns:1fr 1fr; gap:2px; }
+  .card img { width:100%; aspect-ratio:3/2; object-fit:cover; display:block; }
+  .card .cap { display:flex; justify-content:space-between; padding:.45rem .7rem; font-size:.82rem; color:var(--muted); }
+  .card .cap a { color:var(--accent); text-decoration:none; }
+  .lbl { font-size:.72rem; color:var(--muted); text-align:center; padding:.15rem 0; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Complete3D — GenRecon Benchmark on ScanNet++</h1>
+  <div class="sub">
+    Reproduction and extension of the <a href="https://arxiv.org/abs/2605.23888">GenRecon</a> evaluation protocol
+    on the 137-scene ScanNet++ test split (sorted scenes 769–905) · DSLR COLMAP mode · seed 42 ·
+    3D: 200k surface samples, observation-envelope culling (1.1&nbsp;cm scanner fusion ⊕ 15&nbsp;cm) ·
+    2D: official held-out test frames, 876×584 · 2026-08-03
+  </div>
+
+  <div class="headline">
+    <h2>3D geometry (137 scenes)</h2>
+    <table id="t3d"></table>
+    <p class="note">Paper reference is its published 25-scene evaluation. ↓ lower is better, ↑ higher is better.</p>
+
+    <h2>2D rendered metrics (official test frames, ~16 views/scene)</h2>
+    <table id="t2d"></table>
+    <p class="note">LPIPS/CLIP compare unlit vertex-color renders to captured photos (paper's render lighting is
+    unpublished) — comparable across our runs, not to the paper. Normal error uses flat face normals.</p>
+  </div>
+
+  <h2>Per-scene results</h2>
+  <div class="controls">
+    <input type="search" id="q" placeholder="filter scene id…">
+    <select id="runsel">
+      <option value="genrecon_dslr_8views">8 input views</option>
+      <option value="genrecon_dslr_32views">32 input views</option>
+    </select>
+    <span class="note">click a column header to sort · click a scene to open the 3D viewer</span>
+  </div>
+  <div class="scenetable-box"><table id="scenes"></table></div>
+
+  <h2>Gallery — rendered reconstruction vs. photo (held-out view)</h2>
+  <div class="controls"><span class="note">showing the run selected above · click any card to open the interactive 3D viewer</span></div>
+  <div class="gallery" id="gallery"></div>
+</div>
+
+<script>
+const fmt = (x, d=4) => x == null ? "–" : (+x).toFixed(d);
+let DATA = null, sortKey = "chamfer", sortAsc = true;
+
+function headline() {
+  const m = DATA.means, p = DATA.paper;
+  document.getElementById("t3d").innerHTML = `
+    <thead><tr><th></th><th>Chamfer ↓</th><th>F@10cm ↑</th><th>Normal cons. ↑</th></tr></thead><tbody>
+    <tr><td>Paper (25 scenes, 8 views)</td><td>${fmt(p.cd)}</td><td>${fmt(p.f,3)}</td><td>${fmt(p.nc,3)}</td></tr>
+    <tr><td>Ours — 8 views</td><td>${fmt(m.genrecon_dslr_8views["3d"].chamfer)}</td><td>${fmt(m.genrecon_dslr_8views["3d"].fscore,3)}</td><td>${fmt(m.genrecon_dslr_8views["3d"].normal_consistency,3)}</td></tr>
+    <tr><td>Ours — 32 views</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].chamfer)}</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].fscore,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].normal_consistency,3)}</td></tr>
+    </tbody>`;
+  document.getElementById("t2d").innerHTML = `
+    <thead><tr><th></th><th>Depth MAE ↓</th><th>Normal ↓</th><th>Compl. ↑</th><th>LPIPS ↓</th><th>CLIP ↑</th></tr></thead><tbody>
+    <tr><td>Paper (8 views)</td><td>${fmt(p.depth_mae)}</td><td>${fmt(p.normal,2)}°</td><td>–</td><td>–</td><td>–</td></tr>
+    <tr><td>Ours — 8 views</td><td>${fmt(m.genrecon_dslr_8views["2d"].depth_mae)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].normal_angle_deg,2)}°</td><td>${fmt(m.genrecon_dslr_8views["2d"].completeness,3)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].lpips_alex,3)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].clip_sim,3)}</td></tr>
+    <tr><td>Ours — 32 views</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].depth_mae)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].normal_angle_deg,2)}°</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].completeness,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].lpips_alex,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].clip_sim,3)}</td></tr>
+    </tbody>`;
+}
+
+const COLS = [
+  ["scene","scene"], ["chamfer","CD ↓"], ["fscore","F ↑"], ["normal_consistency","NC ↑"],
+  ["depth_mae","dMAE ↓"], ["normal_angle_deg","norm° ↓"], ["lpips_alex","LPIPS ↓"], ["clip_sim","CLIP ↑"],
+];
+function sceneRows() {
+  const run = document.getElementById("runsel").value, q = document.getElementById("q").value.trim();
+  let rows = Object.entries(DATA.scenes).map(([id, d]) => {
+    const r = d[run] || {};
+    return { scene:id, ...(r["3d"]||{}), ...(r["2d"]||{}) };
+  });
+  if (q) rows = rows.filter(r => r.scene.includes(q));
+  rows.sort((a,b) => { const va=a[sortKey], vb=b[sortKey];
+    if (va==null) return 1; if (vb==null) return -1;
+    return (va<vb?-1:va>vb?1:0) * (sortAsc?1:-1); });
+  const head = "<thead><tr>" + COLS.map(([k,l]) => `<th data-k="${k}">${l}${k===sortKey?(sortAsc?" ▲":" ▼"):""}</th>`).join("") + "</tr></thead>";
+  const body = "<tbody>" + rows.map(r => `<tr onclick="location='viewer.html?scene=${r.scene}&run=${run}'" style="cursor:pointer">`
+    + COLS.map(([k]) => `<td>${k==="scene"?r.scene:fmt(r[k], k==="normal_angle_deg"?2:4)}</td>`).join("") + "</tr>").join("") + "</tbody>";
+  const t = document.getElementById("scenes");
+  t.innerHTML = head + body;
+  t.querySelectorAll("th").forEach(th => th.onclick = () => {
+    const k = th.dataset.k; if (k===sortKey) sortAsc = !sortAsc; else { sortKey=k; sortAsc=true; } sceneRows();
+  });
+}
+
+function gallery() {
+  const run = document.getElementById("runsel").value;
+  document.getElementById("gallery").innerHTML = Object.keys(DATA.scenes).sort().map(id => `
+    <div class="card" onclick="location='viewer.html?scene=${id}&run=${run}'" style="cursor:pointer">
+      <div class="imgs">
+        <div><img loading="lazy" src="gallery/${run}/${id}_render.jpg" alt=""><div class="lbl">reconstruction</div></div>
+        <div><img loading="lazy" src="gallery/${run}/${id}_photo.jpg" alt=""><div class="lbl">photo</div></div>
+      </div>
+      <div class="cap"><span>${id}</span><a>open 3D ↗</a></div>
+    </div>`).join("");
+}
+
+fetch("data/metrics_scannetpp.json").then(r => r.json()).then(d => {
+  DATA = d; headline(); sceneRows(); gallery();
+  document.getElementById("q").oninput = sceneRows;
+  document.getElementById("runsel").onchange = () => { sceneRows(); gallery(); };
+});
+</script>
+</body>
+</html>
