@@ -123,17 +123,24 @@ function gallery() {
   const run = document.getElementById("runsel").value;
   document.getElementById("gallery").innerHTML = Object.keys(DATA.scenes).sort().map(id => `
     <div class="card">
-      <video muted loop playsinline preload="none" poster="gallery/${run}/${id}_render.jpg"
+      <video muted loop playsinline controls preload="none" poster="gallery/${run}/${id}_render.jpg"
              data-src="${HF_VID}/${id}.mp4" style="width:100%;display:block;aspect-ratio:4.5/1;object-fit:cover;background:#eee"></video>
       <div class="cap"><span>${id}</span><a href="viewer.html?scene=${id}&run=${run}">open 3D ↗</a></div>
     </div>`).join("");
   if (vidObserver) vidObserver.disconnect();
+  // Auto-play on scroll, but never resume a video the visitor paused themselves:
+  // only re-play when the pause was ours (autoPaused) or on first load.
   vidObserver = new IntersectionObserver(entries => entries.forEach(e => {
     const v = e.target;
-    if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; v.play().catch(()=>{}); }
-    else v.pause();
+    if (e.isIntersecting) {
+      if (!v.src) { v.src = v.dataset.src; v.play().catch(()=>{}); }
+      else if (v.dataset.autoPaused === "1") v.play().catch(()=>{});
+    } else if (!v.paused) { v.dataset.autoPaused = "1"; v.pause(); }
   }), { rootMargin: "200px" });
-  document.querySelectorAll("#gallery video").forEach(v => vidObserver.observe(v));
+  document.querySelectorAll("#gallery video").forEach(v => {
+    v.addEventListener("play", () => { v.dataset.autoPaused = "0"; });
+    vidObserver.observe(v);
+  });
 }
 
 fetch("data/metrics_scannetpp.json").then(r => r.json()).then(d => {
