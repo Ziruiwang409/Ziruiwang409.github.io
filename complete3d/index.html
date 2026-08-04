@@ -81,15 +81,15 @@ function headline() {
   const m = DATA.means, p = DATA.paper;
   document.getElementById("t3d").innerHTML = `
     <thead><tr><th></th><th>Chamfer ↓</th><th>F@10cm ↑</th><th>Normal cons. ↑</th></tr></thead><tbody>
-    <tr><td>Paper (25 scenes, 8 views)</td><td>${fmt(p.cd)}</td><td>${fmt(p.f,3)}</td><td>${fmt(p.nc,3)}</td></tr>
-    <tr><td>Ours — 8 views</td><td>${fmt(m.genrecon_dslr_8views["3d"].chamfer)}</td><td>${fmt(m.genrecon_dslr_8views["3d"].fscore,3)}</td><td>${fmt(m.genrecon_dslr_8views["3d"].normal_consistency,3)}</td></tr>
-    <tr><td>Ours — 32 views</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].chamfer)}</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].fscore,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].normal_consistency,3)}</td></tr>
+    <tr><td>Paper Report (25 scenes, 8 views)</td><td>${fmt(p.cd)}</td><td>${fmt(p.f,3)}</td><td>${fmt(p.nc,3)}</td></tr>
+    <tr><td>GenRecon — 8 views</td><td>${fmt(m.genrecon_dslr_8views["3d"].chamfer)}</td><td>${fmt(m.genrecon_dslr_8views["3d"].fscore,3)}</td><td>${fmt(m.genrecon_dslr_8views["3d"].normal_consistency,3)}</td></tr>
+    <tr><td>GenRecon — 32 views</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].chamfer)}</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].fscore,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["3d"].normal_consistency,3)}</td></tr>
     </tbody>`;
   document.getElementById("t2d").innerHTML = `
     <thead><tr><th></th><th>Depth MAE ↓</th><th>Normal ↓</th><th>Compl. ↑</th><th>LPIPS ↓</th><th>CLIP ↑</th></tr></thead><tbody>
-    <tr><td>Paper (8 views)</td><td>${fmt(p.depth_mae)}</td><td>${fmt(p.normal,2)}°</td><td>–</td><td>–</td><td>–</td></tr>
-    <tr><td>Ours — 8 views</td><td>${fmt(m.genrecon_dslr_8views["2d"].depth_mae)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].normal_angle_deg,2)}°</td><td>${fmt(m.genrecon_dslr_8views["2d"].completeness,3)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].lpips_alex,3)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].clip_sim,3)}</td></tr>
-    <tr><td>Ours — 32 views</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].depth_mae)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].normal_angle_deg,2)}°</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].completeness,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].lpips_alex,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].clip_sim,3)}</td></tr>
+    <tr><td>Paper Report (8 views)</td><td>${fmt(p.depth_mae)}</td><td>${fmt(p.normal,2)}°</td><td>–</td><td>–</td><td>–</td></tr>
+    <tr><td>GenRecon — 8 views</td><td>${fmt(m.genrecon_dslr_8views["2d"].depth_mae)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].normal_angle_deg,2)}°</td><td>${fmt(m.genrecon_dslr_8views["2d"].completeness,3)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].lpips_alex,3)}</td><td>${fmt(m.genrecon_dslr_8views["2d"].clip_sim,3)}</td></tr>
+    <tr><td>GenRecon — 32 views</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].depth_mae)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].normal_angle_deg,2)}°</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].completeness,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].lpips_alex,3)}</td><td class="best">${fmt(m.genrecon_dslr_32views["2d"].clip_sim,3)}</td></tr>
     </tbody>`;
 }
 
