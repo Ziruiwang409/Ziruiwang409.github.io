@@ -64,12 +64,12 @@
       <option value="genrecon_dslr_8views">8 input views</option>
       <option value="genrecon_dslr_32views">32 input views</option>
     </select>
-    <span class="note">click a column header to sort · click a scene to open the 3D viewer</span>
+    <span class="note">click a column header to sort</span>
   </div>
   <div class="scenetable-box"><table id="scenes"></table></div>
 
   <h2>Gallery — interior walkthroughs (pred 8 views | pred 32 views | ground truth)</h2>
-  <div class="controls"><span class="note">videos autoplay as you scroll · camera follows the smoothed real capture trajectory · "open 3D" gives the interactive viewer</span></div>
+  <div class="controls"><span class="note">videos autoplay as you scroll · camera follows the smoothed real capture trajectory</span></div>
   <div class="gallery vids" id="gallery"></div>
 </div>
 
@@ -108,7 +108,7 @@ function sceneRows() {
     if (va==null) return 1; if (vb==null) return -1;
     return (va<vb?-1:va>vb?1:0) * (sortAsc?1:-1); });
   const head = "<thead><tr>" + COLS.map(([k,l]) => `<th data-k="${k}">${l}${k===sortKey?(sortAsc?" ▲":" ▼"):""}</th>`).join("") + "</tr></thead>";
-  const body = "<tbody>" + rows.map(r => `<tr onclick="location='viewer.html?scene=${r.scene}&run=${run}'" style="cursor:pointer">`
+  const body = "<tbody>" + rows.map(r => "<tr>"
     + COLS.map(([k]) => `<td>${k==="scene"?r.scene:fmt(r[k], k==="normal_angle_deg"?2:4)}</td>`).join("") + "</tr>").join("") + "</tbody>";
   const t = document.getElementById("scenes");
   t.innerHTML = head + body;
@@ -125,7 +125,7 @@ function gallery() {
     <div class="card">
       <video muted loop playsinline controls preload="none" poster="gallery/${run}/${id}_render.jpg"
              data-src="${HF_VID}/${id}.mp4" style="width:100%;display:block;aspect-ratio:4.5/1;object-fit:cover;background:#eee"></video>
-      <div class="cap"><span>${id}</span><a href="viewer.html?scene=${id}&run=${run}">open 3D ↗</a></div>
+      <div class="cap"><span>${id}</span></div>
     </div>`).join("");
   if (vidObserver) vidObserver.disconnect();
   // Auto-play on scroll, but never resume a video the visitor paused themselves:
