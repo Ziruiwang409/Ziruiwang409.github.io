@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complete3D — Scan-Conditioned GenRecon (ScanNet++)</title>
+<style>
+  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
+  .wrap { max-width:1200px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+  h1 { font-size:1.7rem; margin:.2rem 0 .3rem; }
+  h2 { font-size:1.2rem; margin:2.2rem 0 .6rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; }
+  .sub { color:var(--muted); font-size:.95rem; margin-bottom:1rem; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; }
+  .headline table { width:auto; }
+  th, td { padding:.4rem .7rem; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { border-bottom:2px solid var(--fg); cursor:pointer; user-select:none; }
+  tbody tr:hover { background:var(--card); }
+  .best { font-weight:600; color:var(--accent); }
+  .note { color:var(--muted); font-size:.85rem; margin:.4rem 0 0; }
+  .controls { margin:.6rem 0 1rem; display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; }
+  input[type=search] { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; min-width:220px; }
+  select { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; background:var(--bg); cursor:pointer; }
+  .scenetable-box { max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+  .gallery { display:grid; grid-template-columns:1fr; gap:1.2rem; max-width:1100px; }
+  .card { background:var(--card); border-radius:10px; overflow:hidden; }
+  .card .inputs-row { display:grid; grid-template-columns:1fr 1fr; gap:2px; }
+  .card img, .card video { width:100%; display:block; background:#eee; }
+  .card .inputs-row img { aspect-ratio:2/1; object-fit:cover; }
+  .card .inputs-row video { aspect-ratio:2/1; object-fit:cover; }
+  .card .recon video { aspect-ratio:6/1; object-fit:cover; }
+  .card .cap { display:flex; justify-content:space-between; padding:.45rem .7rem; font-size:.82rem; color:var(--muted); }
+  .lbl { font-size:.72rem; color:var(--muted); text-align:center; padding:.2rem 0; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Complete3D — Scan-Conditioned GenRecon on ScanNet++</h1>
+  <div class="sub">
+    Partial-scan conditioning experiment (exp2: full fine-tune, 100k steps, gated scan side-channel) on the
+    137-scene ScanNet++ test split · 8 input views, seed 42 — identical views across all runs ·
+    partial scan = GT-mesh depth ray-cast at those same 8 viewpoints (simulated depth sensor, 500k pts) ·
+    protocol as the <a href="../index.html">image-only benchmark</a> · 2026-08-17
+  </div>
+
+  <div class="headline">
+    <h2>3D geometry (137 scenes)</h2>
+    <table id="t3d"></table>
+    <p class="note">All runs condition on the same 8 images; scan rows additionally see the partial scan.
+      exp2t is the identical fine-tune initialized from stock Trellis.2 instead of the GenRecon backbone.
+      † exp2t img-only means are over 133 scenes — on 4 scenes it predicts an empty structure outright.
+      For reference, image-only GenRecon with <b>32</b> views reaches CD 0.0543 / F 0.862 —
+      8 views + scan beats it. ↓ lower is better, ↑ higher is better.</p>
+
+    <h2>2D rendered metrics (official held-out test frames)</h2>
+    <table id="t2d"></table>
+    <p class="note">LPIPS/CLIP compare unlit vertex-color renders to captured photos — comparable across runs.</p>
+  </div>
+
+  <h2>Per-scene results</h2>
+  <div class="controls">
+    <input type="search" id="q" placeholder="filter scene id…">
+    <select id="runsel">
+      <option value="exp2_100k_scan_8views">exp2 — img + partial scan</option>
+      <option value="exp2_100k_img_8views">exp2 — img only</option>
+      <option value="genrecon_dslr_8views">GenRecon baseline — img only</option>
+      <option value="exp2t_100k_scan_8views">exp2t (Trellis init) — img + partial scan</option>
+      <option value="exp2t_100k_img_8views">exp2t (Trellis init) — img only</option>
+    </select>
+    <span class="note">click a column header to sort</span>
+  </div>
+  <div class="scenetable-box"><table id="scenes"></table></div>
+
+  <h2>Gallery — inputs and reconstructions</h2>
+  <div class="controls"><span class="note">
+    top: the 8 input views · the partial-scan input (colored depth points, same walkthrough camera) ·
+    bottom: reconstructions — GenRecon baseline 8v | exp2 img-only | exp2 img+scan | ground truth ·
+    videos autoplay as you scroll
+  </span></div>
+  <div class="gallery" id="gallery"></div>
+</div>
+
+<script>
+const fmt = (x, d=4) => x == null ? "–" : (+x).toFixed(d);
+let DATA = null, sortKey = "chamfer", sortAsc = true;
+const ROWS = [
+  ["genrecon_dslr_8views", "GenRecon baseline — 8 views"],
+  ["exp2_100k_img_8views", "exp2 — img only (8 views)"],
+  ["exp2_100k_scan_8views", "exp2 — img + partial scan"],
+  ["exp2t_100k_img_8views", "exp2t (Trellis init) — img only †"],
+  ["exp2t_100k_scan_8views", "exp2t (Trellis init) — img + partial scan"],
+];
+
+function headline() {
+  const m = DATA.means;
+  document.getElementById("t3d").innerHTML =
+    `<thead><tr><th></th><th>Chamfer ↓</th><th>F@10cm ↑</th><th>Normal cons. ↑</th><th>Precision ↑</th><th>Recall ↑</th></tr></thead><tbody>`
+    + ROWS.map(([r, label]) => {
+      const d = m[r]["3d"], best = r === "exp2_100k_scan_8views" ? ' class="best"' : "";
+      return `<tr><td>${label}</td><td${best}>${fmt(d.chamfer)}</td><td${best}>${fmt(d.fscore,3)}</td>`
+        + `<td${best}>${fmt(d.normal_consistency,3)}</td><td${best}>${fmt(d.precision,3)}</td><td${best}>${fmt(d.recall,3)}</td></tr>`;
+    }).join("") + "</tbody>";
+  document.getElementById("t2d").innerHTML =
+    `<thead><tr><th></th><th>Depth MAE ↓</th><th>Normal ↓</th><th>Compl. ↑</th><th>LPIPS ↓</th><th>CLIP ↑</th></tr></thead><tbody>`
+    + ROWS.map(([r, label]) => {
+      const d = m[r]["2d"], best = r === "exp2_100k_scan_8views" ? ' class="best"' : "";
+      return `<tr><td>${label}</td><td${best}>${fmt(d.depth_mae)}</td><td${best}>${fmt(d.normal_angle_deg,2)}°</td>`
+        + `<td${best}>${fmt(d.completeness,3)}</td><td${best}>${fmt(d.lpips_alex,3)}</td><td${best}>${fmt(d.clip_sim,3)}</td></tr>`;
+    }).join("") + "</tbody>";
+}
+
+const COLS = [
+  ["scene","scene"], ["chamfer","CD ↓"], ["fscore","F ↑"], ["normal_consistency","NC ↑"],
+  ["depth_mae","dMAE ↓"], ["normal_angle_deg","norm° ↓"], ["lpips_alex","LPIPS ↓"], ["clip_sim","CLIP ↑"],
+];
+function sceneRows() {
+  const run = document.getElementById("runsel").value, q = document.getElementById("q").value.trim();
+  let rows = Object.entries(DATA.scenes).map(([id, d]) => {
+    const r = d[run] || {};
+    return { scene:id, ...(r["3d"]||{}), ...(r["2d"]||{}) };
+  });
+  if (q) rows = rows.filter(r => r.scene.includes(q));
+  rows.sort((a,b) => { const va=a[sortKey], vb=b[sortKey];
+    if (va==null) return 1; if (vb==null) return -1;
+    return (va<vb?-1:va>vb?1:0) * (sortAsc?1:-1); });
+  const head = "<thead><tr>" + COLS.map(([k,l]) => `<th data-k="${k}">${l}${k===sortKey?(sortAsc?" ▲":" ▼"):""}</th>`).join("") + "</tr></thead>";
+  const body = "<tbody>" + rows.map(r => "<tr>"
+    + COLS.map(([k]) => `<td>${k==="scene"?r.scene:fmt(r[k], k==="normal_angle_deg"?2:4)}</td>`).join("") + "</tr>").join("") + "</tbody>";
+  const t = document.getElementById("scenes");
+  t.innerHTML = head + body;
+  t.querySelectorAll("th").forEach(th => th.onclick = () => {
+    const k = th.dataset.k; if (k===sortKey) sortAsc = !sortAsc; else { sortKey=k; sortAsc=true; } sceneRows();
+  });
+}
+
+const HF_VID = "https://huggingface.co/datasets/jasonwwwwzr/complete3d-results/resolve/main/videos/scannetpp_scan";
+let vidObserver = null;
+function gallery() {
+  document.getElementById("gallery").innerHTML = Object.keys(DATA.scenes).sort().map(id => `
+    <div class="card">
+      <div class="inputs-row">
+        <div><img loading="lazy" src="gallery/${id}_inputs.jpg" alt="8 input views">
+             <div class="lbl">8 input views</div></div>
+        <div><video muted loop playsinline controls preload="none" poster="gallery/${id}_scan.jpg"
+                    data-src="${HF_VID}/${id}_scan.mp4"></video>
+             <div class="lbl">partial scan input (depth @ the 8 views)</div></div>
+      </div>
+      <div class="recon">
+        <video muted loop playsinline controls preload="none" poster="gallery/${id}_recon.jpg"
+               data-src="${HF_VID}/${id}_recon.mp4"></video>
+        <div class="lbl">baseline 8v&emsp;|&emsp;exp2 img-only&emsp;|&emsp;exp2 img+scan&emsp;|&emsp;ground truth</div>
+      </div>
+      <div class="cap"><span>${id}</span></div>
+    </div>`).join("");
+  if (vidObserver) vidObserver.disconnect();
+  vidObserver = new IntersectionObserver(entries => entries.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting) {
+      if (!v.src) { v.src = v.dataset.src; v.play().catch(()=>{}); }
+      else if (v.dataset.autoPaused === "1") v.play().catch(()=>{});
+    } else if (!v.paused) { v.dataset.autoPaused = "1"; v.pause(); }
+  }), { rootMargin: "200px" });
+  document.querySelectorAll("#gallery video").forEach(v => {
+    v.addEventListener("play", () => { v.dataset.autoPaused = "0"; });
+    vidObserver.observe(v);
+  });
+}
+
+fetch("data/metrics_scannetpp_scan.json").then(r => r.json()).then(d => {
+  DATA = d; headline(); sceneRows(); gallery();
+  document.getElementById("q").oninput = sceneRows;
+  document.getElementById("runsel").onchange = sceneRows;
+});
+</script>
+</body>
+</html>
