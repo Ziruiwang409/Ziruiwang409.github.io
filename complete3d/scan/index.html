@@ -26,10 +26,9 @@
   .scenetable-box { max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
   .gallery { display:grid; grid-template-columns:1fr; gap:1.2rem; max-width:1100px; }
   .card { background:var(--card); border-radius:10px; overflow:hidden; }
-  .card .inputs-row { display:grid; grid-template-columns:1fr 1fr; gap:2px; }
+  .card .inputs-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px; }
   .card img, .card video { width:100%; display:block; background:#eee; }
-  .card .inputs-row img { aspect-ratio:2/1; object-fit:cover; }
-  .card .inputs-row video { aspect-ratio:2/1; object-fit:cover; }
+  .card .inputs-row video { aspect-ratio:3/2; object-fit:cover; }
   .card .recon video { aspect-ratio:6/1; object-fit:cover; }
   .card .cap { display:flex; justify-content:space-between; padding:.45rem .7rem; font-size:.82rem; color:var(--muted); }
   .lbl { font-size:.72rem; color:var(--muted); text-align:center; padding:.2rem 0; }
@@ -76,9 +75,10 @@
 
   <h2>Gallery — inputs and reconstructions</h2>
   <div class="controls"><span class="note">
-    top: the 8 input views · the partial-scan input (colored depth points, same walkthrough camera) ·
-    bottom: reconstructions — GenRecon baseline 8v | exp2 img-only | exp2 img+scan | ground truth ·
-    videos autoplay as you scroll
+    top: the 8 input views (slideshow) · the partial-scan input · the completed output — both on the
+    same elevated orbit with the ceiling removed, so input coverage and completion compare directly ·
+    bottom: reconstruction walkthroughs — GenRecon baseline 8v | exp2 img-only | exp2 img+scan |
+    ground truth, camera following the smoothed real capture trajectory · videos autoplay as you scroll
   </span></div>
   <div class="gallery" id="gallery"></div>
 </div>
@@ -142,11 +142,15 @@ function gallery() {
   document.getElementById("gallery").innerHTML = Object.keys(DATA.scenes).sort().map(id => `
     <div class="card">
       <div class="inputs-row">
-        <div><img loading="lazy" src="gallery/${id}_inputs.jpg" alt="8 input views">
+        <div><video muted loop playsinline controls preload="none" poster="gallery/${id}_inputs.jpg"
+                    data-src="${HF_VID}/${id}_inputs.mp4"></video>
              <div class="lbl">8 input views</div></div>
         <div><video muted loop playsinline controls preload="none" poster="gallery/${id}_scan.jpg"
                     data-src="${HF_VID}/${id}_scan.mp4"></video>
-             <div class="lbl">partial scan input (depth @ the 8 views)</div></div>
+             <div class="lbl">partial scan input (orbit, ceiling removed)</div></div>
+        <div><video muted loop playsinline controls preload="none" poster="gallery/${id}_out.jpg"
+                    data-src="${HF_VID}/${id}_out.mp4"></video>
+             <div class="lbl">output — exp2 img+scan (same orbit, ceiling removed)</div></div>
       </div>
       <div class="recon">
         <video muted loop playsinline controls preload="none" poster="gallery/${id}_recon.jpg"
