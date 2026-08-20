@@ -39,20 +39,20 @@
 <div class="wrap">
   <h1>Complete3D — Scan-Conditioned GenRecon on ScanNet++</h1>
   <div class="sub">
-    Partial-scan conditioning experiment (exp2: full fine-tune, 100k steps, gated scan side-channel) on the
+    Scan-conditioning experiment (exp2: full fine-tune, 100k steps, gated scan side-channel) on the
     137-scene ScanNet++ test split · 8 input views, seed 42 — identical views across all runs ·
-    partial scan = GT-mesh depth ray-cast at those same 8 viewpoints (simulated depth sensor, 500k pts) ·
-    protocol as the <a href="../index.html">image-only benchmark</a> · 2026-08-17
+    scan input = the scene's <b>COLMAP sparse point cloud</b> (real SfM output, zero ground-truth contact)
+    with track-derived sensor origins carving observed-free space ·
+    protocol as the <a href="../index.html">image-only benchmark</a> · 2026-08-20
   </div>
 
   <div class="headline">
     <h2>3D geometry (137 scenes)</h2>
     <table id="t3d"></table>
-    <p class="note">All runs condition on the same 8 images; scan rows additionally see the partial scan.
-      exp2t is the identical fine-tune initialized from stock Trellis.2 instead of the GenRecon backbone.
-      † exp2t img-only means are over 133 scenes — on 4 scenes it predicts an empty structure outright.
+    <p class="note">All runs condition on the same 8 images; the scan row additionally sees the scene's
+      COLMAP sparse cloud — a byproduct of pose estimation, so no extra sensing is required.
       For reference, image-only GenRecon with <b>32</b> views reaches CD 0.0543 / F 0.862 —
-      8 views + scan beats it. ↓ lower is better, ↑ higher is better.</p>
+      8 views + the COLMAP scan matches it (CD 0.0545). ↓ lower is better, ↑ higher is better.</p>
 
     <h2>2D rendered metrics (official held-out test frames)</h2>
     <table id="t2d"></table>
@@ -63,11 +63,9 @@
   <div class="controls">
     <input type="search" id="q" placeholder="filter scene id…">
     <select id="runsel">
-      <option value="exp2_100k_scan_8views">exp2 — img + partial scan</option>
+      <option value="exp2_100k_colmapcarve_8views">exp2 — img + COLMAP scan</option>
       <option value="exp2_100k_img_8views">exp2 — img only</option>
       <option value="genrecon_dslr_8views">GenRecon baseline — img only</option>
-      <option value="exp2t_100k_scan_8views">exp2t (Trellis init) — img + partial scan</option>
-      <option value="exp2t_100k_img_8views">exp2t (Trellis init) — img only</option>
     </select>
     <span class="note">click a column header to sort</span>
   </div>
@@ -75,10 +73,11 @@
 
   <h2>Gallery — inputs and reconstructions</h2>
   <div class="controls"><span class="note">
-    top: the 8 input views (slideshow) · the partial-scan input · the completed output — both on the
-    same elevated orbit with the ceiling removed, so input coverage and completion compare directly ·
-    bottom: reconstruction walkthroughs — GenRecon baseline 8v | exp2 img-only | exp2 img+scan |
-    ground truth, camera following the smoothed real capture trajectory · videos autoplay as you scroll
+    top: the 8 input views (slideshow) · the COLMAP scan input (the actual SfM points the model
+    conditions on) · the completed output — both on the same elevated orbit with the ceiling removed,
+    so input sparsity and completion compare directly · bottom: reconstruction walkthroughs —
+    GenRecon baseline 8v | exp2 img-only | exp2 img+COLMAP-scan | ground truth, camera following
+    the smoothed real capture trajectory · videos autoplay as you scroll
   </span></div>
   <div class="gallery" id="gallery"></div>
 </div>
@@ -89,9 +88,7 @@ let DATA = null, sortKey = "chamfer", sortAsc = true;
 const ROWS = [
   ["genrecon_dslr_8views", "GenRecon baseline — 8 views"],
   ["exp2_100k_img_8views", "exp2 — img only (8 views)"],
-  ["exp2_100k_scan_8views", "exp2 — img + partial scan"],
-  ["exp2t_100k_img_8views", "exp2t (Trellis init) — img only †"],
-  ["exp2t_100k_scan_8views", "exp2t (Trellis init) — img + partial scan"],
+  ["exp2_100k_colmapcarve_8views", "exp2 — img + COLMAP scan"],
 ];
 
 function headline() {
@@ -147,15 +144,15 @@ function gallery() {
              <div class="lbl">8 input views</div></div>
         <div><video muted loop playsinline controls preload="none" poster="gallery/${id}_scan.jpg"
                     data-src="${HF_VID}/${id}_scan.mp4"></video>
-             <div class="lbl">partial scan input (orbit, ceiling removed)</div></div>
+             <div class="lbl">COLMAP scan input (orbit, ceiling removed)</div></div>
         <div><video muted loop playsinline controls preload="none" poster="gallery/${id}_out.jpg"
                     data-src="${HF_VID}/${id}_out.mp4"></video>
-             <div class="lbl">output — exp2 img+scan (same orbit, ceiling removed)</div></div>
+             <div class="lbl">output — exp2 img+COLMAP scan (same orbit, ceiling removed)</div></div>
       </div>
       <div class="recon">
         <video muted loop playsinline controls preload="none" poster="gallery/${id}_recon.jpg"
                data-src="${HF_VID}/${id}_recon.mp4"></video>
-        <div class="lbl">baseline 8v&emsp;|&emsp;exp2 img-only&emsp;|&emsp;exp2 img+scan&emsp;|&emsp;ground truth</div>
+        <div class="lbl">baseline 8v&emsp;|&emsp;exp2 img-only&emsp;|&emsp;exp2 img+COLMAP scan&emsp;|&emsp;ground truth</div>
       </div>
       <div class="cap"><span>${id}</span></div>
     </div>`).join("");
