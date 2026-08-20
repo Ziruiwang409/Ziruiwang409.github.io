@@ -96,14 +96,14 @@ function headline() {
   document.getElementById("t3d").innerHTML =
     `<thead><tr><th></th><th>Chamfer ↓</th><th>F@10cm ↑</th><th>Normal cons. ↑</th><th>Precision ↑</th><th>Recall ↑</th></tr></thead><tbody>`
     + ROWS.map(([r, label]) => {
-      const d = m[r]["3d"], best = r === "exp2_100k_scan_8views" ? ' class="best"' : "";
+      const d = m[r]["3d"], best = r === "exp2_100k_colmapcarve_8views" ? ' class="best"' : "";
       return `<tr><td>${label}</td><td${best}>${fmt(d.chamfer)}</td><td${best}>${fmt(d.fscore,3)}</td>`
         + `<td${best}>${fmt(d.normal_consistency,3)}</td><td${best}>${fmt(d.precision,3)}</td><td${best}>${fmt(d.recall,3)}</td></tr>`;
     }).join("") + "</tbody>";
   document.getElementById("t2d").innerHTML =
     `<thead><tr><th></th><th>Depth MAE ↓</th><th>Normal ↓</th><th>Compl. ↑</th><th>LPIPS ↓</th><th>CLIP ↑</th></tr></thead><tbody>`
     + ROWS.map(([r, label]) => {
-      const d = m[r]["2d"], best = r === "exp2_100k_scan_8views" ? ' class="best"' : "";
+      const d = m[r]["2d"], best = r === "exp2_100k_colmapcarve_8views" ? ' class="best"' : "";
       return `<tr><td>${label}</td><td${best}>${fmt(d.depth_mae)}</td><td${best}>${fmt(d.normal_angle_deg,2)}°</td>`
         + `<td${best}>${fmt(d.completeness,3)}</td><td${best}>${fmt(d.lpips_alex,3)}</td><td${best}>${fmt(d.clip_sim,3)}</td></tr>`;
     }).join("") + "</tbody>";
