@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Complete3D — Navigation: raw ScanNet++ scan vs GenRecon reconstruction (Habitat PointNav)</title>
+<title>Complete3D — Navigation: raw ScanNet++ scan vs our reconstruction (Habitat PointNav)</title>
 <style>
-  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; --ok:#1f8a4c; --bad:#c0392b; }
+  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; --ok:#1f8a4c; --bad:#c0392b; --r1:#2a9d8f; --r2:#e67814; }
   * { box-sizing: border-box; }
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
   .wrap { max-width:1200px; margin:0 auto; padding:2rem 1.25rem 4rem; }
@@ -15,12 +15,14 @@
   .sub { color:var(--muted); font-size:.95rem; margin-bottom:1rem; }
   table { border-collapse:collapse; width:100%; font-size:.9rem; }
   .headline table { width:auto; }
-  th, td { padding:.4rem .7rem; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th, td { padding:.4rem .7rem; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; vertical-align:top; }
   th:first-child, td:first-child { text-align:left; }
+  td.arm { text-align:left; font-weight:600; }
   thead th { border-bottom:2px solid var(--fg); cursor:pointer; user-select:none; }
   tbody tr:hover { background:var(--card); }
   .best { font-weight:600; color:var(--accent); }
   .pos { color:var(--ok); } .neg { color:var(--bad); }
+  .r1 { color:var(--r1); } .r2 { color:var(--r2); }
   .note { color:var(--muted); font-size:.85rem; margin:.4rem 0 0; }
   .controls { margin:.6rem 0 1rem; display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; }
   input[type=search] { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; min-width:220px; }
@@ -40,14 +42,14 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Complete3D — Navigation on the raw ScanNet++ scan vs a GenRecon reconstruction</h1>
+  <h1>Complete3D — Navigation on the raw ScanNet++ scan vs our reconstruction from 32 frames</h1>
   <div class="sub" id="sub">
     <b>Simulation readiness</b>: PointNav in Habitat on two worlds per scene — <b>S</b> = the raw ScanNet++ laser scan,
-    <b>R</b> = the GenRecon reconstruction of the same scene from <b>32 DSLR frames</b> (image-only baseline) · 124 ScanNet++
-    test scenes × 50 point-goal episodes sampled on S and carried to R (start / goal snapped within 0.25 m; an episode that
-    cannot be placed or connected on R counts as a <b>failure</b>) · the same frozen agents on both arms (<b>DD-PPO depth</b>
-    = headline, DD-PPO RGB, navmesh oracle), greedy actions, Gibson PointNav settings (0.25 m / 10°, success within 0.2 m,
-    500 steps) · SPL is scored against the scan's own shortest path on both arms ·
+    <b>R</b> = our <b>Complete3D-v2</b> reconstruction of the same scene from <b>32 DSLR frames</b> plus VGGT-Omega evidence computed
+    from those same frames (no depth sensor, no scan) · 120 ScanNet++ test scenes × 50 point-goal episodes sampled on the floor of S and
+    carried to R (start / goal snapped within 0.25 m; an episode that cannot be placed or connected on R counts as a <b>failure</b>) ·
+    the same frozen agents on both arms (<b>DD-PPO depth</b> = headline, DD-PPO RGB, navmesh oracle), greedy actions, Gibson PointNav
+    settings (0.25 m / 10°, success within 0.2 m, 500 steps) · SPL is scored against the scan's own shortest path on both arms ·
     <a href="../index.html">image-only benchmark</a> · <a href="../scan/index.html">scan-conditioned</a> ·
     <a href="../vggt/index.html">VGGT-evidence</a> · <span id="date"></span>
   </div>
@@ -58,13 +60,14 @@
     <p class="note">Δ = R − S with a 95 % paired bootstrap CI over scenes. <b>Unplaceable</b> = episodes whose start or goal is
       more than 0.25 m from R's navmesh or disconnected on R (counted as failures in SR/SPL). <b>Runnable-only</b> = SR / SPL on R
       over the placeable episodes alone. The RGB agent sees flat-shaded vertex colours on both arms (no textures), so its S row is
-      a rendering-domain control, not a ceiling; the depth agent is the geometry claim.</p>
+      a rendering-domain control, not a ceiling; the depth agent is the geometry claim. Geometry of the reconstruction against the
+      laser mesh (137 scenes): Chamfer 0.0505, F-score @10 cm 0.874.</p>
 
     <h2>Hard episodes (shortest path > 5 m)</h2>
     <table id="thard"></table>
 
     <h2>Map level (medians over scenes)</h2>
-    <ul class="map" id="map"></ul>
+    <table id="tmap"></table>
     <p class="note">Computed on the navmeshes the agents walked, on one shared 5 cm raster per scene. <b>Phantom</b> free space =
       navigable on R only; <b>hole-filled</b> = the scan has no floor there (a scan hole, closed morphologically), <b>hallucinated</b> =
       the scan has floor but no free space; <b>lost</b> = navigable on S only. Path ratio = R's shortest path / S's shortest path
@@ -76,12 +79,12 @@
 
   <h2>Examples</h2>
   <p class="note">Top-down maps are cut-away colour renders of each mesh (everything above floor + 1.6 m removed) with the navmesh
-    difference tinted — <span style="color:#c83c3c">red</span> free space lost on R, <span style="color:#28aa50">green</span> phantom
-    free space on R that fills a scan hole, <span style="color:#3c5ae6">blue</span> hallucinated free space — and the depth agent's
+    difference tinted on the R column — <span style="color:#c83c3c">red</span> free space lost on R, <span style="color:#28aa50">green</span>
+    phantom free space on R that fills a scan hole, <span style="color:#3c5ae6">blue</span> hallucinated free space — and the depth agent's
     trajectories of six selected episodes (navy success, orange failure; dashed = the navmesh shortest path; ● start, ★ goal;
     ✕ = the S start of an episode that cannot be placed on R). Videos replay one episode: the agent's own camera on S (left) and on
-    R (middle) with a picture-in-picture of the depth image the policy sees, and the walked paths on the top-down map (right);
-    the replay is deterministic and reproduces the recorded trajectory step for step. Videos autoplay as you scroll.</p>
+    R (middle) with a picture-in-picture of the depth image the policy sees, and the walked paths on the top-down map (right;
+    navy S, teal R); the replay is deterministic and reproduces the recorded trajectory step for step. Videos autoplay as you scroll.</p>
   <div id="examples"></div>
 
   <h2>Per-scene results</h2>
@@ -97,8 +100,9 @@
   <div class="scenetable-box"><table id="scenes"></table></div>
   <p class="note">Scenes: the 137-scene ScanNet++ test split minus 16 scans that yield no floor-level episodes for the Gibson agent
     (11 without a floor-level navmesh, 5 without a start of island radius ≥ 1.5 m) and one scene without a reconstruction in the
-    companion 8-frame run — 120 scenes, the same set on every arm. Every start and goal lies on the floor (roofs and ceilings are
-    removed from both meshes before the navmesh is baked, so the agent cannot be spawned on top of a room). Protocol and code: <code>GenRecon/eval/habitat/</code> (E14 / E14b).</p>
+    companion 8-frame run — 120 scenes. Every start and goal lies on the floor (roofs and ceilings are removed from both meshes before
+    the navmesh is baked, so the agent cannot be spawned on top of a room). Protocol and code: <code>GenRecon/eval/habitat/</code>
+    (E14 / E14c).</p>
 </div>
 
 <script>
@@ -107,48 +111,60 @@ const num = (x, d=2) => x == null ? "–" : (+x).toFixed(d);
 const delta = (x, ci) => { if (x == null) return "–"; const s = (100 * x >= 0 ? "+" : "") + (100 * x).toFixed(1);
   const cls = 100 * x > 0.05 ? "pos" : (100 * x < -0.05 ? "neg" : ""); const c = ci ? ` [${(100*ci[0]>=0?"+":"")}${(100*ci[0]).toFixed(1)}, ${(100*ci[1]>=0?"+":"")}${(100*ci[1]).toFixed(1)}]` : "";
   return `<span class="${cls}">${s}</span>${c}`; };
-let DATA = null, sortKey = "dspl", sortAsc = true;
+let DATA = null, sortKey = "dspl_0", sortAsc = true;
 const AGENTS = [["ddppo_depth", "DD-PPO depth (ResNet50, Gibson 2+) — headline"], ["ddppo_rgb", "DD-PPO RGB (SE-ResNeXt50, Gibson 2+ & MP3D)"], ["oracle", "oracle shortest-path follower (navmesh only)"]];
 const HF_VID = "https://huggingface.co/datasets/jasonwwwwzr/complete3d-results/resolve/main/videos/scannetpp_nav";
+const multi = () => DATA.arms.length > 1;
+const armCls = i => multi() ? (i === 0 ? "r1" : (i === 1 ? "r2" : "")) : "";
+const armTag = (a, i) => `<span class="${armCls(i)}">${a.key}</span> ${a.short}`;
+const sfx = (a, i) => multi() ? ` ${a.key}` : "";
 
 function headline() {
-  const a = DATA.agents;
+  const arms = DATA.arms;
+  const rowsFor = (tbl, cols) => AGENTS.map(([k, label]) => arms.map((a, i) => { const d = (tbl[a.run] || {})[k]; if (!d) return "";
+    const best = k === "ddppo_depth" ? ' class="best"' : "";
+    return `<tr>${i === 0 ? `<td rowspan="${arms.length}"${best}>${label}</td>` : ""}${multi() ? `<td class="arm">${armTag(a, i)}</td>` : ""}${cols(d, best)}</tr>`; }).join("")).join("");
+  const armTh = multi() ? "<th>R arm</th>" : "";
   document.getElementById("thead").innerHTML =
-    `<thead><tr><th>agent</th><th>episodes (unplaceable on R)</th><th>SR<sub>S</sub></th><th>SR<sub>R</sub></th><th>ΔSR [95 % CI]</th><th>SPL<sub>S</sub></th><th>SPL<sub>R</sub></th><th>ΔSPL [95 % CI]</th><th>runnable-only SR<sub>R</sub> / SPL<sub>R</sub></th></tr></thead><tbody>`
-    + AGENTS.map(([k, label]) => { const d = a[k]; if (!d) return ""; const best = k === "ddppo_depth" ? ' class="best"' : "";
-      return `<tr><td${best}>${label}</td><td>${d.n_episodes} (${d.n_unrunnable})</td><td>${pct(d.SR_S)}</td><td${best}>${pct(d.SR_R)}</td><td>${delta(d.dSR, d.dSR_ci95)}</td>`
-        + `<td>${pct(d.SPL_S)}</td><td${best}>${pct(d.SPL_R)}</td><td>${delta(d.dSPL, d.dSPL_ci95)}</td><td>${pct(d.SR_R_runnable)} / ${pct(d.SPL_R_runnable)}</td></tr>`; }).join("") + "</tbody>";
-  const h = DATA.hard;
+    `<thead><tr><th>agent</th>${armTh}<th>episodes (unplaceable on R)</th><th>SR<sub>S</sub></th><th>SR<sub>R</sub></th><th>ΔSR [95 % CI]</th><th>SPL<sub>S</sub></th><th>SPL<sub>R</sub></th><th>ΔSPL [95 % CI]</th><th>runnable-only SR<sub>R</sub> / SPL<sub>R</sub></th></tr></thead><tbody>`
+    + rowsFor(DATA.agents, (d, best) => `<td>${d.n_episodes} (${d.n_unrunnable})</td><td>${pct(d.SR_S)}</td><td${best}>${pct(d.SR_R)}</td><td>${delta(d.dSR, d.dSR_ci95)}</td>`
+        + `<td>${pct(d.SPL_S)}</td><td${best}>${pct(d.SPL_R)}</td><td>${delta(d.dSPL, d.dSPL_ci95)}</td><td>${pct(d.SR_R_runnable)} / ${pct(d.SPL_R_runnable)}</td>`) + "</tbody>";
   document.getElementById("thard").innerHTML =
-    `<thead><tr><th>agent</th><th>scenes / episodes</th><th>SR<sub>S</sub></th><th>SR<sub>R</sub></th><th>SPL<sub>S</sub></th><th>SPL<sub>R</sub></th><th>ΔSPL [95 % CI]</th></tr></thead><tbody>`
-    + AGENTS.map(([k, label]) => { const d = h[k]; if (!d) return "";
-      return `<tr><td>${label}</td><td>${d.n_scenes} / ${d.n_episodes}</td><td>${pct(d.SR_S)}</td><td>${pct(d.SR_R)}</td><td>${pct(d.SPL_S)}</td><td>${pct(d.SPL_R)}</td><td>${delta(d.dSPL, d.dSPL_ci95)}</td></tr>`; }).join("") + "</tbody>";
-  const m = DATA.map;
-  document.getElementById("map").innerHTML = [
-    `navigable-area IoU <b>${num(m.iou, 3)}</b> · precision<sub>R</sub> ${num(m.precision_R, 3)} (phantom free space ${pct(1 - m.precision_R)} % of R, median ${num(m.phantom_m2, 1)} m², of which <b>hole-filled ${pct(m.hole_filled_frac_of_phantom, 0)} %</b>) · recall<sub>R</sub> ${num(m.recall_R, 3)} (lost free space ${pct(1 - m.recall_R)} % of S, median ${num(m.lost_m2, 1)} m²)`,
-    `floor islands S / R median ${num(m.islands_S_median, 0)} / ${num(m.islands_R_median, 0)} · S episodes connected on R ${pct(m.frac_episodes_connected_on_R)} % · random same-island S pairs same-island on R ${pct(m.frac_same_island_on_R)} %`,
-    `shortest-path ratio R / S median <b>${num(m.path_ratio_median, 3)}</b>`,
-  ].map(s => `<li>${s}</li>`).join("");
-  const t = DATA.per_type, types = Object.keys(t).sort((x, y) => t[y].n - t[x].n);
-  document.getElementById("ttype").innerHTML = `<thead><tr><th>room type</th><th>scenes</th><th>ΔSPL (pp)</th></tr></thead><tbody>`
-    + types.map(k => `<tr><td>${k}</td><td>${t[k].n}</td><td>${delta(t[k].dspl)}</td></tr>`).join("") + "</tbody>";
+    `<thead><tr><th>agent</th>${armTh}<th>scenes / episodes</th><th>SR<sub>S</sub></th><th>SR<sub>R</sub></th><th>SPL<sub>S</sub></th><th>SPL<sub>R</sub></th><th>ΔSPL [95 % CI]</th></tr></thead><tbody>`
+    + rowsFor(DATA.hard, d => `<td>${d.n_scenes} / ${d.n_episodes}</td><td>${pct(d.SR_S)}</td><td>${pct(d.SR_R)}</td><td>${pct(d.SPL_S)}</td><td>${pct(d.SPL_R)}</td><td>${delta(d.dSPL, d.dSPL_ci95)}</td>`) + "</tbody>";
+  const MAPROWS = [["navigable-area IoU", m => num(m.iou, 3)], ["precision<sub>R</sub> (1 − phantom share of R)", m => num(m.precision_R, 3)],
+    ["phantom free space, median m²", m => num(m.phantom_m2, 1)], ["… of which hole-filled", m => pct(m.hole_filled_frac_of_phantom, 0) + " %"],
+    ["recall<sub>R</sub> (1 − lost share of S)", m => num(m.recall_R, 3)], ["lost free space, median m²", m => num(m.lost_m2, 1)],
+    ["S episodes connected on R", m => pct(m.frac_episodes_connected_on_R) + " %"], ["shortest-path ratio R / S", m => num(m.path_ratio_median, 3)]];
+  document.getElementById("tmap").innerHTML = `<thead><tr><th>metric (median over scenes)</th>${arms.map((a, i) => `<th>${multi() ? armTag(a, i) : "R"}</th>`).join("")}</tr></thead><tbody>`
+    + MAPROWS.map(([l, f]) => `<tr><td>${l}</td>${arms.map(a => `<td>${f(DATA.map[a.run] || {})}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  const t0 = DATA.per_type[arms[0].run] || {}, types = Object.keys(t0).sort((x, y) => t0[y].n - t0[x].n);
+  document.getElementById("ttype").innerHTML = `<thead><tr><th>room type</th><th>scenes</th>${arms.map((a, i) => `<th>ΔSPL${sfx(a, i)} (pp)</th>`).join("")}</tr></thead><tbody>`
+    + types.map(k => `<tr><td>${k}</td><td>${t0[k].n}</td>${arms.map(a => `<td>${delta(((DATA.per_type[a.run] || {})[k] || {}).dspl)}</td>`).join("")}</tr>`).join("") + "</tbody>";
 }
 
-const COLS = [["scene","scene"], ["type","room"], ["unplaceable","unplaceable"], ["sr_S","SR_S"], ["sr_R","SR_R"], ["spl_S","SPL_S"], ["spl_R","SPL_R"],
-  ["dspl","ΔSPL"], ["iou","IoU"], ["hole_filled_frac","hole-filled %"], ["lost_m2","lost m²"], ["path_ratio_median","path ratio"]];
-const PCT = new Set(["sr_S","sr_R","spl_S","spl_R","dspl","hole_filled_frac"]);
+function cols() {
+  const c = [["scene","scene"], ["type","room"], ["sr_S","SR_S"], ["spl_S","SPL_S"]];
+  DATA.arms.forEach((a, i) => c.push([`unpl_${i}`, `unplaceable${sfx(a, i)}`], [`sr_R_${i}`, `SR_R${sfx(a, i)}`], [`spl_R_${i}`, `SPL_R${sfx(a, i)}`], [`dspl_${i}`, `ΔSPL${sfx(a, i)}`], [`iou_${i}`, `IoU${sfx(a, i)}`], [`hf_${i}`, `hole-filled${sfx(a, i)} %`], [`lost_${i}`, `lost m²${sfx(a, i)}`], [`pr_${i}`, `path ratio${sfx(a, i)}`]));
+  return c;
+}
 function sceneRows() {
   const ag = document.getElementById("agsel").value, q = document.getElementById("q").value.trim().toLowerCase();
-  let rows = Object.entries(DATA.scenes).map(([id, d]) => ({ scene:id, type:d.type, unplaceable:d.unplaceable, iou:d.iou, hole_filled_frac:d.hole_filled_frac,
-    lost_m2:d.lost_m2, path_ratio_median:d.path_ratio_median, ...(d[ag] || {}) }));
+  const COLS = cols();
+  let rows = Object.entries(DATA.scenes).map(([id, d]) => { const r = { scene:id, type:d.type };
+    DATA.arms.forEach((a, i) => { const x = d.arms[a.run] || {}, g = x[ag] || {};
+      if (i === 0) { r.sr_S = g.sr_S; r.spl_S = g.spl_S; }
+      r[`unpl_${i}`] = x.unplaceable; r[`sr_R_${i}`] = g.sr_R; r[`spl_R_${i}`] = g.spl_R; r[`dspl_${i}`] = g.dspl; r[`iou_${i}`] = x.iou; r[`hf_${i}`] = x.hole_filled_frac; r[`lost_${i}`] = x.lost_m2; r[`pr_${i}`] = x.path_ratio_median; });
+    return r; });
   if (q) rows = rows.filter(r => r.scene.includes(q) || (r.type || "").toLowerCase().includes(q));
   rows.sort((a, b) => { const va = a[sortKey], vb = b[sortKey]; if (va == null) return 1; if (vb == null) return -1;
     return (va < vb ? -1 : va > vb ? 1 : 0) * (sortAsc ? 1 : -1); });
   const head = "<thead><tr>" + COLS.map(([k, l]) => `<th data-k="${k}">${l}${k === sortKey ? (sortAsc ? " ▲" : " ▼") : ""}</th>`).join("") + "</tr></thead>";
   const body = "<tbody>" + rows.map(r => "<tr>" + COLS.map(([k]) => {
     const v = r[k]; let s;
-    if (k === "scene" || k === "type") s = v ?? "–"; else if (k === "unplaceable") s = v ?? "–";
-    else if (k === "dspl") s = delta(v); else if (PCT.has(k)) s = pct(v, k === "hole_filled_frac" ? 0 : 1); else s = num(v, k === "iou" || k === "path_ratio_median" ? 3 : 2);
+    if (k === "scene" || k === "type" || k.startsWith("unpl_")) s = v ?? "–";
+    else if (k.startsWith("dspl_")) s = delta(v); else if (k.startsWith("iou_") || k.startsWith("pr_")) s = num(v, 3); else if (k.startsWith("hf_")) s = pct(v, 0);
+    else if (k.startsWith("lost_")) s = num(v, 2); else s = pct(v, 1);
     return `<td>${s}</td>`; }).join("") + "</tr>").join("") + "</tbody>";
   const t = document.getElementById("scenes");
   t.innerHTML = head + body;
@@ -162,18 +178,20 @@ function outcome(o, unplaceable) {
   return `${o.success >= 1 ? '<span class="pos">success</span>' : '<span class="neg">fail</span>'} · SPL ${pct(o.spl, 0)} · ${o.steps} steps`;
 }
 function examples() {
+  const arms = DATA.arms;
+  const armLabel = (a, i) => multi() ? `<span class="${armCls(i)}">${a.key} — ${a.short}</span>` : `R — ${a.short}`;
   document.getElementById("examples").innerHTML = DATA.examples.map(st => `
     <div class="story"><h3>${st.label}</h3><p>${st.text}</p>
     ${st.scenes.map(sc => `
       <div class="card">
         <img src="${sc.panel}" alt="${sc.scene} top-down panel" loading="lazy">
-        <div class="cap"><b>${sc.scene}</b> · ${sc.type} · ${sc.caption}</div>
+        <div class="cap"><b>${sc.scene}</b> · ${sc.type}${arms.map((a, i) => ` · <span class="${armCls(i)}">${(sc.captions[a.run] || "")}</span>`).join("")}</div>
       </div>
       ${sc.videos.map(v => `
       <div class="card">
-        <video muted loop playsinline controls preload="none" poster="${v.poster}" data-src="${HF_VID}/${v.mp4}"></video>
-        <div class="lbl">S — laser scan, agent camera + depth input&emsp;|&emsp;R — GenRecon 32 frames&emsp;|&emsp;walked paths on the top-down map (navy S, teal R)</div>
-        <div class="cap">episode ${v.episode_id} · shortest path ${num(v.geodesic_S, 1)} m · S: ${outcome(v.S)} · R: ${outcome(v.R, v.R_unplaceable)}${v.seconds ? ` · ${v.seconds} s` : ""}</div>
+        <video muted loop playsinline controls preload="none" poster="${v.poster}" data-src="${HF_VID}/${v.mp4}"${v.width && v.height ? ` style="aspect-ratio:${v.width}/${v.height}"` : ""}></video>
+        <div class="lbl">S — laser scan, agent camera + depth input&emsp;|&emsp;${arms.map((a, i) => armLabel(a, i)).join("&emsp;|&emsp;")}&emsp;|&emsp;walked paths on the top-down map (navy S, teal R)</div>
+        <div class="cap">episode ${v.episode_id} · shortest path ${num(v.geodesic_S, 1)} m · S: ${outcome(v.S)}${arms.map((a, i) => { const x = (v.arms || {})[a.run] || {}; return ` · <span class="${armCls(i)}">${multi() ? a.key : "R"}</span>: ${outcome(x.R, x.unplaceable)}`; }).join("")}${v.seconds ? ` · ${v.seconds} s` : ""}</div>
       </div>`).join("")}`).join("")}
     </div>`).join("");
   if (vidObserver) vidObserver.disconnect();
