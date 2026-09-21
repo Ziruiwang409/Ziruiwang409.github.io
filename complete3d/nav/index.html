@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Complete3D — Navigation: raw ScanNet++ scan vs our reconstruction (Habitat PointNav)</title>
 <style>
-  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; --ok:#1f8a4c; --bad:#c0392b; --r1:#2a9d8f; --r2:#e67814; }
+  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; --ok:#1f8a4c; --bad:#c0392b; }
   * { box-sizing: border-box; }
   body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
   .wrap { max-width:1200px; margin:0 auto; padding:2rem 1.25rem 4rem; }
@@ -17,26 +17,22 @@
   .headline table { width:auto; }
   th, td { padding:.4rem .7rem; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; vertical-align:top; }
   th:first-child, td:first-child { text-align:left; }
-  td.arm { text-align:left; font-weight:600; }
   thead th { border-bottom:2px solid var(--fg); cursor:pointer; user-select:none; }
   tbody tr:hover { background:var(--card); }
   .best { font-weight:600; color:var(--accent); }
   .pos { color:var(--ok); } .neg { color:var(--bad); }
-  .r1 { color:var(--r1); } .r2 { color:var(--r2); }
   .note { color:var(--muted); font-size:.85rem; margin:.4rem 0 0; }
   .controls { margin:.6rem 0 1rem; display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; }
   input[type=search] { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; min-width:220px; }
   select { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; background:var(--bg); cursor:pointer; }
   .scenetable-box { max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
-  .story { margin-top:1rem; }
-  .story p { color:var(--muted); font-size:.92rem; max-width:1100px; }
+  .section p { color:var(--muted); font-size:.92rem; max-width:1100px; }
   .card { background:var(--card); border-radius:10px; overflow:hidden; margin:1rem 0 1.4rem; max-width:1100px; }
   .card img, .card video { width:100%; display:block; background:#eee; }
   .card video { aspect-ratio:4/1; object-fit:cover; }
   .card .cap { padding:.5rem .8rem; font-size:.84rem; color:var(--muted); }
   .card .cap b { color:var(--fg); }
   .lbl { font-size:.74rem; color:var(--muted); padding:.25rem .8rem .5rem; }
-  ul.map { font-size:.9rem; color:var(--fg); }
   a { color:var(--accent); }
 </style>
 </head>
@@ -48,8 +44,8 @@
     <b>R</b> = our <b>Complete3D-v2</b> reconstruction of the same scene from <b>32 DSLR frames</b> plus VGGT-Omega evidence computed
     from those same frames (no depth sensor, no scan) · 120 ScanNet++ test scenes × 50 point-goal episodes sampled on the floor of S and
     carried to R (start / goal snapped within 0.25 m; an episode that cannot be placed or connected on R counts as a <b>failure</b>) ·
-    the same frozen agents on both arms (<b>DD-PPO depth</b> = headline, DD-PPO RGB, navmesh oracle), greedy actions, Gibson PointNav
-    settings (0.25 m / 10°, success within 0.2 m, 500 steps) · SPL is scored against the scan's own shortest path on both arms ·
+    the same two frozen agents on both arms (<b>DD-PPO depth</b>, <b>DD-PPO RGB</b>), greedy actions, Gibson PointNav settings
+    (0.25 m / 10°, success within 0.2 m, 500 steps) · SPL is scored against the scan's own shortest path on both arms ·
     <a href="../index.html">image-only benchmark</a> · <a href="../scan/index.html">scan-conditioned</a> ·
     <a href="../vggt/index.html">VGGT-evidence</a> · <span id="date"></span>
   </div>
@@ -72,20 +68,17 @@
       navigable on R only; <b>hole-filled</b> = the scan has no floor there (a scan hole, closed morphologically), <b>hallucinated</b> =
       the scan has floor but no free space; <b>lost</b> = navigable on S only. Path ratio = R's shortest path / S's shortest path
       per episode (&lt; 1: the scan's holes were filled; &gt; 1: detours).</p>
-
-    <h2>Depth-agent ΔSPL by room type</h2>
-    <table id="ttype"></table>
   </div>
 
-  <h2>Examples</h2>
-  <p class="note">Top-down maps are cut-away colour renders of each mesh (everything above floor + 1.6 m removed) with the navmesh
+  <div id="examples"></div>
+  <p class="note" id="exnote">Top-down maps are cut-away colour renders of each mesh (everything above floor + 1.6 m removed) with the navmesh
     difference tinted on the R column — <span style="color:#c83c3c">red</span> free space lost on R, <span style="color:#28aa50">green</span>
-    phantom free space on R that fills a scan hole, <span style="color:#3c5ae6">blue</span> hallucinated free space — and the depth agent's
+    phantom free space on R that fills a scan hole, <span style="color:#3c5ae6">blue</span> hallucinated free space — and the agent's
     trajectories of six selected episodes (navy success, orange failure; dashed = the navmesh shortest path; ● start, ★ goal;
     ✕ = the S start of an episode that cannot be placed on R). Videos replay one episode: the agent's own camera on S (left) and on
-    R (middle) with a picture-in-picture of the depth image the policy sees, and the walked paths on the top-down map (right;
-    navy S, teal R); the replay is deterministic and reproduces the recorded trajectory step for step. Videos autoplay as you scroll.</p>
-  <div id="examples"></div>
+    R (middle) with a picture-in-picture of the policy's input (the depth image or the 256² RGB image), and the walked paths on the
+    top-down map (right; navy S, teal R); the replay is deterministic and reproduces the recorded trajectory step for step. Videos
+    autoplay as you scroll.</p>
 
   <h2>Per-scene results</h2>
   <div class="controls">
@@ -93,7 +86,6 @@
     <select id="agsel">
       <option value="depth">DD-PPO depth</option>
       <option value="rgb">DD-PPO RGB</option>
-      <option value="oracle">oracle shortest-path follower</option>
     </select>
     <span class="note">click a column header to sort · SR / SPL in %, unplaceable of 50 episodes</span>
   </div>
@@ -112,18 +104,17 @@ const delta = (x, ci) => { if (x == null) return "–"; const s = (100 * x >= 0 
   const cls = 100 * x > 0.05 ? "pos" : (100 * x < -0.05 ? "neg" : ""); const c = ci ? ` [${(100*ci[0]>=0?"+":"")}${(100*ci[0]).toFixed(1)}, ${(100*ci[1]>=0?"+":"")}${(100*ci[1]).toFixed(1)}]` : "";
   return `<span class="${cls}">${s}</span>${c}`; };
 let DATA = null, sortKey = "dspl_0", sortAsc = true;
-const AGENTS = [["ddppo_depth", "DD-PPO depth (ResNet50, Gibson 2+) — headline"], ["ddppo_rgb", "DD-PPO RGB (SE-ResNeXt50, Gibson 2+ & MP3D)"], ["oracle", "oracle shortest-path follower (navmesh only)"]];
+const AGENTS = [["ddppo_depth", "DD-PPO depth (ResNet50, Gibson 2+)"], ["ddppo_rgb", "DD-PPO RGB (SE-ResNeXt50, Gibson 2+ & MP3D)"]];
 const HF_VID = "https://huggingface.co/datasets/jasonwwwwzr/complete3d-results/resolve/main/videos/scannetpp_nav";
 const multi = () => DATA.arms.length > 1;
-const armCls = i => multi() ? (i === 0 ? "r1" : (i === 1 ? "r2" : "")) : "";
-const armTag = (a, i) => `<span class="${armCls(i)}">${a.key}</span> ${a.short}`;
-const sfx = (a, i) => multi() ? ` ${a.key}` : "";
+const armTag = a => `${a.key} ${a.short}`;
+const sfx = a => multi() ? ` ${a.key}` : "";
 
 function headline() {
   const arms = DATA.arms;
   const rowsFor = (tbl, cols) => AGENTS.map(([k, label]) => arms.map((a, i) => { const d = (tbl[a.run] || {})[k]; if (!d) return "";
     const best = k === "ddppo_depth" ? ' class="best"' : "";
-    return `<tr>${i === 0 ? `<td rowspan="${arms.length}"${best}>${label}</td>` : ""}${multi() ? `<td class="arm">${armTag(a, i)}</td>` : ""}${cols(d, best)}</tr>`; }).join("")).join("");
+    return `<tr>${i === 0 ? `<td rowspan="${arms.length}"${best}>${label}</td>` : ""}${multi() ? `<td>${armTag(a)}</td>` : ""}${cols(d, best)}</tr>`; }).join("")).join("");
   const armTh = multi() ? "<th>R arm</th>" : "";
   document.getElementById("thead").innerHTML =
     `<thead><tr><th>agent</th>${armTh}<th>episodes (unplaceable on R)</th><th>SR<sub>S</sub></th><th>SR<sub>R</sub></th><th>ΔSR [95 % CI]</th><th>SPL<sub>S</sub></th><th>SPL<sub>R</sub></th><th>ΔSPL [95 % CI]</th><th>runnable-only SR<sub>R</sub> / SPL<sub>R</sub></th></tr></thead><tbody>`
@@ -136,16 +127,13 @@ function headline() {
     ["phantom free space, median m²", m => num(m.phantom_m2, 1)], ["… of which hole-filled", m => pct(m.hole_filled_frac_of_phantom, 0) + " %"],
     ["recall<sub>R</sub> (1 − lost share of S)", m => num(m.recall_R, 3)], ["lost free space, median m²", m => num(m.lost_m2, 1)],
     ["S episodes connected on R", m => pct(m.frac_episodes_connected_on_R) + " %"], ["shortest-path ratio R / S", m => num(m.path_ratio_median, 3)]];
-  document.getElementById("tmap").innerHTML = `<thead><tr><th>metric (median over scenes)</th>${arms.map((a, i) => `<th>${multi() ? armTag(a, i) : "R"}</th>`).join("")}</tr></thead><tbody>`
+  document.getElementById("tmap").innerHTML = `<thead><tr><th>metric (median over scenes)</th>${arms.map(a => `<th>${multi() ? armTag(a) : "R"}</th>`).join("")}</tr></thead><tbody>`
     + MAPROWS.map(([l, f]) => `<tr><td>${l}</td>${arms.map(a => `<td>${f(DATA.map[a.run] || {})}</td>`).join("")}</tr>`).join("") + "</tbody>";
-  const t0 = DATA.per_type[arms[0].run] || {}, types = Object.keys(t0).sort((x, y) => t0[y].n - t0[x].n);
-  document.getElementById("ttype").innerHTML = `<thead><tr><th>room type</th><th>scenes</th>${arms.map((a, i) => `<th>ΔSPL${sfx(a, i)} (pp)</th>`).join("")}</tr></thead><tbody>`
-    + types.map(k => `<tr><td>${k}</td><td>${t0[k].n}</td>${arms.map(a => `<td>${delta(((DATA.per_type[a.run] || {})[k] || {}).dspl)}</td>`).join("")}</tr>`).join("") + "</tbody>";
 }
 
 function cols() {
   const c = [["scene","scene"], ["type","room"], ["sr_S","SR_S"], ["spl_S","SPL_S"]];
-  DATA.arms.forEach((a, i) => c.push([`unpl_${i}`, `unplaceable${sfx(a, i)}`], [`sr_R_${i}`, `SR_R${sfx(a, i)}`], [`spl_R_${i}`, `SPL_R${sfx(a, i)}`], [`dspl_${i}`, `ΔSPL${sfx(a, i)}`], [`iou_${i}`, `IoU${sfx(a, i)}`], [`hf_${i}`, `hole-filled${sfx(a, i)} %`], [`lost_${i}`, `lost m²${sfx(a, i)}`], [`pr_${i}`, `path ratio${sfx(a, i)}`]));
+  DATA.arms.forEach((a, i) => c.push([`unpl_${i}`, `unplaceable${sfx(a)}`], [`sr_R_${i}`, `SR_R${sfx(a)}`], [`spl_R_${i}`, `SPL_R${sfx(a)}`], [`dspl_${i}`, `ΔSPL${sfx(a)}`], [`iou_${i}`, `IoU${sfx(a)}`], [`hf_${i}`, `hole-filled${sfx(a)} %`], [`lost_${i}`, `lost m²${sfx(a)}`], [`pr_${i}`, `path ratio${sfx(a)}`]));
   return c;
 }
 function sceneRows() {
@@ -179,19 +167,19 @@ function outcome(o, unplaceable) {
 }
 function examples() {
   const arms = DATA.arms;
-  const armLabel = (a, i) => multi() ? `<span class="${armCls(i)}">${a.key} — ${a.short}</span>` : `R — ${a.short}`;
-  document.getElementById("examples").innerHTML = DATA.examples.map(st => `
-    <div class="story"><h3>${st.label}</h3><p>${st.text}</p>
-    ${st.scenes.map(sc => `
+  const armLabel = a => multi() ? `${a.key} — ${a.short}` : `R — ${a.short}`;
+  document.getElementById("examples").innerHTML = DATA.examples.map(sec => `
+    <div class="section"><h2>${sec.title}</h2><p>${sec.text}</p>
+    ${sec.scenes.map(sc => `
       <div class="card">
-        <img src="${sc.panel}" alt="${sc.scene} top-down panel" loading="lazy">
-        <div class="cap"><b>${sc.scene}</b> · ${sc.type}${arms.map((a, i) => ` · <span class="${armCls(i)}">${(sc.captions[a.run] || "")}</span>`).join("")}</div>
+        <img src="${sc.panel}" alt="${sc.scene} top-down panel (${sec.short})" loading="lazy">
+        <div class="cap"><b>${sc.scene}</b> · ${sc.type}${arms.map(a => ` · ${(sc.captions[a.run] || "")}`).join("")}</div>
       </div>
       ${sc.videos.map(v => `
       <div class="card">
         <video muted loop playsinline controls preload="none" poster="${v.poster}" data-src="${HF_VID}/${v.mp4}"${v.width && v.height ? ` style="aspect-ratio:${v.width}/${v.height}"` : ""}></video>
-        <div class="lbl">S — laser scan, agent camera + depth input&emsp;|&emsp;${arms.map((a, i) => armLabel(a, i)).join("&emsp;|&emsp;")}&emsp;|&emsp;walked paths on the top-down map (navy S, teal R)</div>
-        <div class="cap">episode ${v.episode_id} · shortest path ${num(v.geodesic_S, 1)} m · S: ${outcome(v.S)}${arms.map((a, i) => { const x = (v.arms || {})[a.run] || {}; return ` · <span class="${armCls(i)}">${multi() ? a.key : "R"}</span>: ${outcome(x.R, x.unplaceable)}`; }).join("")}${v.seconds ? ` · ${v.seconds} s` : ""}</div>
+        <div class="lbl">${sec.short}: S — laser scan, agent camera + policy input&emsp;|&emsp;${arms.map(a => armLabel(a)).join("&emsp;|&emsp;")}&emsp;|&emsp;walked paths on the top-down map (navy S, teal R)</div>
+        <div class="cap">episode ${v.episode_id} · shortest path ${num(v.geodesic_S, 1)} m · S: ${outcome(v.S)}${arms.map(a => { const x = (v.arms || {})[a.run] || {}; return ` · ${multi() ? a.key : "R"}: ${outcome(x.R, x.unplaceable)}`; }).join("")}${v.seconds ? ` · ${v.seconds} s` : ""}</div>
       </div>`).join("")}`).join("")}
     </div>`).join("");
   if (vidObserver) vidObserver.disconnect();
