@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complete3D — Completion from a Partial Laser Scan (ScanNet++)</title>
+<style>
+  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
+  .wrap { max-width:1200px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+  h1 { font-size:1.7rem; margin:.2rem 0 .3rem; }
+  h2 { font-size:1.2rem; margin:2.2rem 0 .6rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; }
+  .sub { color:var(--muted); font-size:.95rem; margin-bottom:1rem; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; }
+  .headline table { width:auto; }
+  th, td { padding:.4rem .7rem; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { border-bottom:2px solid var(--fg); cursor:pointer; user-select:none; }
+  tbody tr:hover { background:var(--card); }
+  .best { font-weight:600; color:var(--accent); }
+  .note { color:var(--muted); font-size:.85rem; margin:.4rem 0 0; }
+  .controls { margin:.6rem 0 1rem; display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; }
+  input[type=search] { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; min-width:220px; }
+  select { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; background:var(--bg); cursor:pointer; }
+  .scenetable-box { max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+  .gallery { display:grid; grid-template-columns:1fr; gap:1.2rem; max-width:1100px; }
+  .card { background:var(--card); border-radius:10px; overflow:hidden; }
+  .card .inputs-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px; }
+  .card img, .card video { width:100%; display:block; background:#eee; }
+  .card .inputs-row video { aspect-ratio:3/2; object-fit:cover; }
+  .card .recon video { aspect-ratio:6/1; object-fit:cover; }
+  .card .cap { display:flex; justify-content:space-between; padding:.45rem .7rem; font-size:.82rem; color:var(--muted); }
+  .lbl { font-size:.72rem; color:var(--muted); text-align:center; padding:.2rem 0; }
+  a { color:var(--accent); }
+
+  .gallery .card img { width:100%; }
+  ul.rules { font-size:.9rem; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Complete3D — Completion from a Partial Laser Scan on ScanNet++</h1>
+  <div class="sub">
+    Input = the <b>first laser station</b> of each scene (a real partial scan) + 8 DSLR views · model = Complete3D-v2 (100k) ·
+    <b>merged</b> = the scan kept verbatim + the prediction only where the scan saw nothing · 137 test scenes · GT = the full laser mesh ·
+    protocol as the <a href="../index.html">image-only benchmark</a> · 2026-10-10 ·
+    <a href="../scan/index.html">scan-conditioned experiment →</a> · <a href="../nav/index.html">navigation application →</a>
+  </div>
+
+  <div class="headline">
+    <h2>Whole scene (137 scenes)</h2>
+    <table><thead><tr><th>mesh</th><th>CD ↓</th><th>acc ↓</th><th>compl ↓</th><th>P ↑</th><th>R ↑</th><th>F@10 ↑</th><th>NC ↑</th></tr></thead><tbody><tr><td>input scan only (first station)</td><td class=''>0.0697</td><td class='best'>0.0122</td><td class=''>0.1272</td><td class='best'>1.000</td><td class=''>0.785</td><td class=''>0.873</td><td class=''>0.853</td></tr><tr><td>Complete3D-v2 raw (scan + 8 images)</td><td class=''>0.0496</td><td class=''>0.0567</td><td class=''>0.0426</td><td class=''>0.802</td><td class=''>0.953</td><td class=''>0.870</td><td class=''>0.827</td></tr><tr><td>Complete3D-v2 merged</td><td class='best'>0.0407</td><td class=''>0.0546</td><td class='best'>0.0269</td><td class=''>0.792</td><td class='best'>0.976</td><td class='best'>0.873</td><td class='best'>0.864</td></tr></tbody></table>
+    <p class="note">The input scan is near-perfect where it exists (same laser data as the GT), but covers only part of the room.
+      The merge keeps that accuracy on scanned surfaces and adds the prediction in the gaps: lowest CD, best completeness, recall and normals.</p>
+
+    <h2>Observed vs unobserved (station visibility)</h2>
+    <table><thead><tr><th rowspan='2'>mesh</th><th colspan='4' style='text-align:center'>observed (82 % of GT)</th><th colspan='4' style='text-align:center'>unobserved</th></tr><tr><th>CD ↓</th><th>P ↑</th><th>R ↑</th><th>F ↑</th><th>CD ↓</th><th>P ↑</th><th>R ↑</th><th>F ↑</th></tr></thead><tbody><tr><td>input scan only (first station)</td><td>0.0168</td><td>0.999</td><td>0.950</td><td>0.974</td><td>—</td><td>—</td><td>0.000</td><td>—</td></tr><tr><td>Complete3D-v2 raw (scan + 8 images)</td><td>0.0469</td><td>0.827</td><td>0.965</td><td>0.889</td><td>0.1256</td><td>0.309</td><td>0.920</td><td>0.450</td></tr><tr><td>Complete3D-v2 merged</td><td>0.0365</td><td>0.817</td><td>0.994</td><td>0.896</td><td>0.1255</td><td>0.308</td><td>0.918</td><td>0.449</td></tr></tbody></table>
+    <p class="note">Observed = within 15 cm of what the first station scanned; unobserved = laser-GT surface that station never saw.
+      The input has no geometry in the unobserved region; the merged result recovers 0.918 of it (recall at 10 cm).</p>
+  </div>
+
+  <h2>Merge rule</h2>
+  <ul class="rules">
+    <li>Free space = 2 cm voxels crossed by each laser ray (station → point), stopping 4 cm before the hit.</li>
+    <li>A predicted vertex is dropped if it lies in free space (the scan saw nothing there) or within 3 cm of a scan point (the scan already
+      has the surface); a predicted face survives only if all three vertices do. Merged = scan mesh ∪ surviving predicted faces.</li>
+    <li>Leakage check: 7.9% of the raw predicted surface (mean over scenes) lies in space the scan saw empty and is removed;
+      72% of predicted faces are kept on average.</li>
+  </ul>
+
+  <h2>Examples</h2>
+  <p class="note">Panels: input scan · Complete3D-v2 raw · merged (scan grey, generated orange) · GT. One camera per scene; walls cut
+    at 60 % of the room height. Scenes: the two best merged results, two from the hardest 20, two typical.</p>
+  <div class="gallery">
+    <div class='card'><img src='gallery/f19ca0a52e.jpg' loading='lazy' alt='f19ca0a52e'><div class='cap'><span><b>f19ca0a52e</b> · best</span><span>CD input 0.0173 · raw 0.0375 · merged 0.0316</span></div></div><div class='card'><img src='gallery/f9f95681fd.jpg' loading='lazy' alt='f9f95681fd'><div class='cap'><span><b>f9f95681fd</b> · best</span><span>CD input 0.0058 · raw 0.0315 · merged 0.0319</span></div></div><div class='card'><img src='gallery/e050c15a8d.jpg' loading='lazy' alt='e050c15a8d'><div class='cap'><span><b>e050c15a8d</b> · tail-20</span><span>CD input 0.4552 · raw 0.0771 · merged 0.0700</span></div></div><div class='card'><img src='gallery/e3b3b0d0c7.jpg' loading='lazy' alt='e3b3b0d0c7'><div class='cap'><span><b>e3b3b0d0c7</b> · tail-20</span><span>CD input 0.1492 · raw 0.0841 · merged 0.0705</span></div></div><div class='card'><img src='gallery/e91722b5a3.jpg' loading='lazy' alt='e91722b5a3'><div class='cap'><span><b>e91722b5a3</b> · typical</span><span>CD input 0.0423 · raw 0.0544 · merged 0.0397</span></div></div><div class='card'><img src='gallery/e3c1da58dd.jpg' loading='lazy' alt='e3c1da58dd'><div class='cap'><span><b>e3c1da58dd</b> · typical</span><span>CD input 0.0410 · raw 0.0488 · merged 0.0384</span></div></div><div class='card'><img src='gallery/seam_f19ca0a52e.jpg' loading='lazy' alt='seam f19ca0a52e'><div class='cap'><span><b>Seam close-up</b> · f19ca0a52e</span><span>generated (orange) stops ≤ 3 cm from the scan (grey)</span></div></div>
+  </div>
+</div>
+</body>
+</html>
