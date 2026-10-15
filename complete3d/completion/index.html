@@ -34,47 +34,81 @@
   .lbl { font-size:.72rem; color:var(--muted); text-align:center; padding:.2rem 0; }
   a { color:var(--accent); }
 
+  h3 { font-size:1rem; margin:1.4rem 0 .5rem; }
   .gallery .card img { width:100%; }
   ul.rules { font-size:.9rem; line-height:1.5; }
+  .callout { border-left:4px solid var(--accent); background:var(--card); padding:.6rem .9rem; margin:1rem 0; font-size:.92rem; line-height:1.5; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Complete3D — Completion from a Partial Laser Scan on ScanNet++</h1>
   <div class="sub">
-    Input = the <b>first laser station</b> of each scene (a real partial scan) + 8 DSLR views · model = Complete3D-v2 (100k) ·
-    <b>merged</b> = the scan kept verbatim + the prediction only where the scan saw nothing · 137 test scenes · GT = the full laser mesh ·
-    protocol as the <a href="../index.html">image-only benchmark</a> · 2026-10-10 ·
+    Model = Complete3D-v2 (100k) · <b>merged</b> = the scan kept verbatim + the prediction only where the scan saw nothing ·
+    137 test scenes · GT = the full laser mesh · protocol as the <a href="../index.html">image-only benchmark</a> ·
     <a href="../scan/index.html">scan-conditioned experiment →</a> · <a href="../nav/index.html">navigation application →</a>
   </div>
 
-  <div class="headline">
-    <h2>Whole scene (137 scenes)</h2>
-    <table><thead><tr><th>mesh</th><th>CD ↓</th><th>acc ↓</th><th>compl ↓</th><th>P ↑</th><th>R ↑</th><th>F@10 ↑</th><th>NC ↑</th></tr></thead><tbody><tr><td>input scan only (first station)</td><td class=''>0.0697</td><td class='best'>0.0122</td><td class=''>0.1272</td><td class='best'>1.000</td><td class=''>0.785</td><td class=''>0.873</td><td class=''>0.853</td></tr><tr><td>Complete3D-v2 raw (scan + 8 images)</td><td class=''>0.0496</td><td class=''>0.0567</td><td class=''>0.0426</td><td class=''>0.802</td><td class=''>0.953</td><td class=''>0.870</td><td class=''>0.827</td></tr><tr><td>Complete3D-v2 merged</td><td class='best'>0.0407</td><td class=''>0.0546</td><td class='best'>0.0269</td><td class=''>0.792</td><td class='best'>0.976</td><td class='best'>0.873</td><td class='best'>0.864</td></tr></tbody></table>
-    <p class="note">The input scan is near-perfect where it exists (same laser data as the GT), but covers only part of the room.
-      The merge keeps that accuracy on scanned surfaces and adds the prediction in the gaps: lowest CD, best completeness, recall and normals.</p>
-
-    <h2>Observed vs unobserved (station visibility)</h2>
-    <table><thead><tr><th rowspan='2'>mesh</th><th colspan='4' style='text-align:center'>observed (82 % of GT)</th><th colspan='4' style='text-align:center'>unobserved</th></tr><tr><th>CD ↓</th><th>P ↑</th><th>R ↑</th><th>F ↑</th><th>CD ↓</th><th>P ↑</th><th>R ↑</th><th>F ↑</th></tr></thead><tbody><tr><td>input scan only (first station)</td><td>0.0168</td><td>0.999</td><td>0.950</td><td>0.974</td><td>—</td><td>—</td><td>0.000</td><td>—</td></tr><tr><td>Complete3D-v2 raw (scan + 8 images)</td><td>0.0469</td><td>0.827</td><td>0.965</td><td>0.889</td><td>0.1256</td><td>0.309</td><td>0.920</td><td>0.450</td></tr><tr><td>Complete3D-v2 merged</td><td>0.0365</td><td>0.817</td><td>0.994</td><td>0.896</td><td>0.1255</td><td>0.308</td><td>0.918</td><td>0.449</td></tr></tbody></table>
-    <p class="note">Observed = within 15 cm of what the first station scanned; unobserved = laser-GT surface that station never saw.
-      The input has no geometry in the unobserved region; the merged result recovers 0.918 of it (recall at 10 cm).</p>
+  <div class="callout">
+    <b>Two settings, different inputs.</b>
+    <a href="#scan10">Section 1</a> uses the <b>scan + 8 DSLR images</b>: the first laser station only (82% of the GT surface).
+    <a href="#scan50">Section 2</a> uses the <b>scan alone, no images</b>: the first 50 % of the stations (94% of the GT surface).
+    At that coverage the merge does <b>not</b> beat the input scan on CD; it adds the missing surface but less accurately than laser data.
   </div>
 
-  <h2>Merge rule</h2>
+  <h2>Merge rule (both sections)</h2>
   <ul class="rules">
     <li>Free space = 2 cm voxels crossed by each laser ray (station → point), stopping 4 cm before the hit.</li>
     <li>A predicted vertex is dropped if it lies in free space (the scan saw nothing there) or within 3 cm of a scan point (the scan already
       has the surface); a predicted face survives only if all three vertices do. Merged = scan mesh ∪ surviving predicted faces.</li>
-    <li>Leakage check: 7.9% of the raw predicted surface (mean over scenes) lies in space the scan saw empty and is removed;
-      72% of predicted faces are kept on average.</li>
+    <li>Leakage check: the share of the raw predicted surface that lies in space the scan saw empty (removed by the rule) —
+      7.9% in section 1, 11.8% in section 2 (mean over scenes); predicted faces kept on
+      average 72% and 63%.</li>
   </ul>
 
-  <h2>Examples</h2>
+  <h2 id="scan10">1 · First laser station (10 % of stations) + 8 DSLR images</h2>
+  <div class="sub">Input = the <b>first laser station</b> of each scene (a real partial scan, 82% of the GT surface) <b>+ 8 DSLR views</b> · 2026-10-10 · 137 test scenes</div>
+  <div class="headline">
+    <h3>Whole scene</h3>
+    <table><thead><tr><th>mesh</th><th>CD ↓</th><th>acc ↓</th><th>compl ↓</th><th>P ↑</th><th>R ↑</th><th>F@10 ↑</th><th>NC ↑</th></tr></thead><tbody><tr><td>input scan only (first station)</td><td class=''>0.0697</td><td class='best'>0.0122</td><td class=''>0.1272</td><td class='best'>1.000</td><td class=''>0.785</td><td class=''>0.873</td><td class=''>0.853</td></tr><tr><td>Complete3D-v2 raw (scan + 8 images)</td><td class=''>0.0496</td><td class=''>0.0567</td><td class=''>0.0426</td><td class=''>0.802</td><td class=''>0.953</td><td class=''>0.870</td><td class=''>0.827</td></tr><tr><td>Complete3D-v2 merged</td><td class='best'>0.0407</td><td class=''>0.0546</td><td class='best'>0.0269</td><td class=''>0.792</td><td class='best'>0.976</td><td class='best'>0.873</td><td class='best'>0.864</td></tr></tbody></table>
+    <p class="note">The input scan is near-perfect where it exists (same laser data as the GT), but covers only part of the room. The merge keeps that accuracy on scanned surfaces and adds the prediction in the gaps: lowest CD, best completeness, recall and normals.</p>
+
+    <h3>Observed vs unobserved (station visibility)</h3>
+    <table><thead><tr><th rowspan='2'>mesh</th><th colspan='4' style='text-align:center'>observed (82% of GT)</th><th colspan='4' style='text-align:center'>unobserved</th></tr><tr><th>CD ↓</th><th>P ↑</th><th>R ↑</th><th>F ↑</th><th>CD ↓</th><th>P ↑</th><th>R ↑</th><th>F ↑</th></tr></thead><tbody><tr><td>input scan only (first station)</td><td>0.0168</td><td>0.999</td><td>0.950</td><td>0.974</td><td>—</td><td>—</td><td>0.000</td><td>—</td></tr><tr><td>Complete3D-v2 raw (scan + 8 images)</td><td>0.0469</td><td>0.827</td><td>0.965</td><td>0.889</td><td>0.1256</td><td>0.309</td><td>0.920</td><td>0.450</td></tr><tr><td>Complete3D-v2 merged</td><td>0.0365</td><td>0.817</td><td>0.994</td><td>0.896</td><td>0.1255</td><td>0.308</td><td>0.918</td><td>0.449</td></tr></tbody></table>
+    <p class="note">Observed = within 15 cm of what the first station scanned; unobserved = laser-GT surface that station never saw. The input has no geometry in the unobserved region; the merged result recovers 0.918 of it (recall at 10 cm).</p>
+    <p class="note">Merge: 72% of predicted faces kept on average; leakage 0.079 (mean share of the raw predicted
+      surface lying in space the scan saw empty, removed).</p>
+  </div>
+
+  <h3>Examples</h3>
   <p class="note">Panels: input scan · Complete3D-v2 raw · merged (scan grey, generated orange) · GT. One camera per scene; walls cut
     at 60 % of the room height. Scenes: the two best merged results, two from the hardest 20, two typical.</p>
   <div class="gallery">
     <div class='card'><img src='gallery/f19ca0a52e.jpg' loading='lazy' alt='f19ca0a52e'><div class='cap'><span><b>f19ca0a52e</b> · best</span><span>CD input 0.0173 · raw 0.0375 · merged 0.0316</span></div></div><div class='card'><img src='gallery/f9f95681fd.jpg' loading='lazy' alt='f9f95681fd'><div class='cap'><span><b>f9f95681fd</b> · best</span><span>CD input 0.0058 · raw 0.0315 · merged 0.0319</span></div></div><div class='card'><img src='gallery/e050c15a8d.jpg' loading='lazy' alt='e050c15a8d'><div class='cap'><span><b>e050c15a8d</b> · tail-20</span><span>CD input 0.4552 · raw 0.0771 · merged 0.0700</span></div></div><div class='card'><img src='gallery/e3b3b0d0c7.jpg' loading='lazy' alt='e3b3b0d0c7'><div class='cap'><span><b>e3b3b0d0c7</b> · tail-20</span><span>CD input 0.1492 · raw 0.0841 · merged 0.0705</span></div></div><div class='card'><img src='gallery/e91722b5a3.jpg' loading='lazy' alt='e91722b5a3'><div class='cap'><span><b>e91722b5a3</b> · typical</span><span>CD input 0.0423 · raw 0.0544 · merged 0.0397</span></div></div><div class='card'><img src='gallery/e3c1da58dd.jpg' loading='lazy' alt='e3c1da58dd'><div class='cap'><span><b>e3c1da58dd</b> · typical</span><span>CD input 0.0410 · raw 0.0488 · merged 0.0384</span></div></div><div class='card'><img src='gallery/seam_f19ca0a52e.jpg' loading='lazy' alt='seam f19ca0a52e'><div class='cap'><span><b>Seam close-up</b> · f19ca0a52e</span><span>generated (orange) stops ≤ 3 cm from the scan (grey)</span></div></div>
   </div>
+
+
+  <h2 id="scan50">2 · First 50 % of laser stations, scan only (no images)</h2>
+  <div class="sub">Input = the <b>first half of the laser stations</b> (94% of the GT surface) and <b>nothing else</b>: no images at any stage (stage 1 scan-only, stages 2–3 unconditional) · 2026-10-15 · 137 test scenes</div>
+  <div class="headline">
+    <h3>Whole scene</h3>
+    <table><thead><tr><th>mesh</th><th>CD ↓</th><th>acc ↓</th><th>compl ↓</th><th>P ↑</th><th>R ↑</th><th>F@10 ↑</th><th>NC ↑</th></tr></thead><tbody><tr><td>input scan only (first 50 % of stations)</td><td class='best'>0.0267</td><td class='best'>0.0124</td><td class=''>0.0410</td><td class='best'>0.999</td><td class=''>0.924</td><td class='best'>0.959</td><td class='best'>0.907</td></tr><tr><td>Complete3D-v2 raw (scan only, no images)</td><td class=''>0.0518</td><td class=''>0.0573</td><td class=''>0.0462</td><td class=''>0.797</td><td class=''>0.943</td><td class=''>0.863</td><td class=''>0.818</td></tr><tr><td>Complete3D-v2 merged</td><td class=''>0.0389</td><td class=''>0.0532</td><td class='best'>0.0246</td><td class=''>0.793</td><td class='best'>0.982</td><td class=''>0.876</td><td class=''>0.878</td></tr></tbody></table>
+    <p class="note">With half the stations the scan already covers 94% of the GT, and here the <b>merge does not beat the input scan on CD</b> (0.0267 input vs 0.0389 merged). It does improve on the raw prediction (0.0518 → 0.0389) and completes the scan (completeness 0.0410 → 0.0246, recall 0.924 → 0.982), but the generated surface it adds is far less accurate than laser data (accuracy 0.0124 → 0.0532), which outweighs the completeness gained.</p>
+
+    <h3>Observed vs unobserved (station visibility)</h3>
+    <table><thead><tr><th rowspan='2'>mesh</th><th colspan='4' style='text-align:center'>observed (94% of GT)</th><th colspan='4' style='text-align:center'>unobserved</th></tr><tr><th>CD ↓</th><th>P ↑</th><th>R ↑</th><th>F ↑</th><th>CD ↓</th><th>P ↑</th><th>R ↑</th><th>F ↑</th></tr></thead><tbody><tr><td>input scan only (first 50 % of stations)</td><td>0.0146</td><td>0.999</td><td>0.978</td><td>0.989</td><td>—</td><td>—</td><td>0.000</td><td>—</td></tr><tr><td>Complete3D-v2 raw (scan only, no images)</td><td>0.0489</td><td>0.809</td><td>0.955</td><td>0.875</td><td>0.1696</td><td>0.147</td><td>0.835</td><td>0.234</td></tr><tr><td>Complete3D-v2 merged</td><td>0.0360</td><td>0.805</td><td>0.996</td><td>0.890</td><td>0.1713</td><td>0.146</td><td>0.820</td><td>0.232</td></tr></tbody></table>
+    <p class="note">Observed = within 15 cm of what the first half of the stations scanned (94% of the GT); unobserved = the remaining 6%. The input has no geometry there; the merged result recovers 0.820 of it (raw 0.835; the merge removes a little generated surface there). On the observed part the scan stays far ahead (CD 0.0146 vs 0.0360 merged): the scan is kept verbatim, but generated faces in observed-region space the laser neither hit nor saw empty add error.</p>
+    <p class="note">Merge: 63% of predicted faces kept on average; leakage 0.118 (mean share of the raw predicted
+      surface lying in space the scan saw empty, removed).</p>
+  </div>
+
+  <h3>Examples</h3>
+  <p class="note">Panels: input scan · Complete3D-v2 raw · merged (scan grey, generated orange) · GT. One camera per scene; walls cut
+    at 60 % of the room height. Scenes: the same six as section 1 (picked on the 10 % results), for a side-by-side comparison.</p>
+  <div class="gallery">
+    <div class='card'><img src='gallery/scan50/f19ca0a52e.jpg' loading='lazy' alt='f19ca0a52e'><div class='cap'><span><b>f19ca0a52e</b> · best</span><span>CD input 0.0173 · raw 0.0388 · merged 0.0277</span></div></div><div class='card'><img src='gallery/scan50/f9f95681fd.jpg' loading='lazy' alt='f9f95681fd'><div class='cap'><span><b>f9f95681fd</b> · best</span><span>CD input 0.0058 · raw 0.0399 · merged 0.0308</span></div></div><div class='card'><img src='gallery/scan50/e050c15a8d.jpg' loading='lazy' alt='e050c15a8d'><div class='cap'><span><b>e050c15a8d</b> · tail-20</span><span>CD input 0.0242 · raw 0.0562 · merged 0.0423</span></div></div><div class='card'><img src='gallery/scan50/e3b3b0d0c7.jpg' loading='lazy' alt='e3b3b0d0c7'><div class='cap'><span><b>e3b3b0d0c7</b> · tail-20</span><span>CD input 0.0421 · raw 0.0659 · merged 0.0548</span></div></div><div class='card'><img src='gallery/scan50/e91722b5a3.jpg' loading='lazy' alt='e91722b5a3'><div class='cap'><span><b>e91722b5a3</b> · typical</span><span>CD input 0.0209 · raw 0.0463 · merged 0.0383</span></div></div><div class='card'><img src='gallery/scan50/e3c1da58dd.jpg' loading='lazy' alt='e3c1da58dd'><div class='cap'><span><b>e3c1da58dd</b> · typical</span><span>CD input 0.0167 · raw 0.0537 · merged 0.0351</span></div></div><div class='card'><img src='gallery/scan50/seam_f19ca0a52e.jpg' loading='lazy' alt='seam f19ca0a52e'><div class='cap'><span><b>Seam close-up</b> · f19ca0a52e</span><span>generated (orange) stops ≤ 3 cm from the scan (grey)</span></div></div>
+  </div>
+
 </div>
 </body>
 </html>

@@ -98,5 +98,111 @@
   "voxel_m": 0.02,
   "trunc_m": 0.04,
   "seam_m": 0.03
+ },
+ "observed_frac_gt": 0.8241773357664234,
+ "n_cards": 7,
+ "scan50_scan_only": {
+  "full_scene": {
+   "scaninput_p0.5": {
+    "scene": "MEAN(137)",
+    "chamfer": "0.02670174096721374",
+    "accuracy": "0.01238222196326213",
+    "completeness": "0.0410212599711654",
+    "precision": "0.9992933576642331",
+    "recall": "0.9238725547445256",
+    "fscore": "0.9587221151308966",
+    "normal_consistency": "0.9074049576336486"
+   },
+   "complete3dv2_100k_pts_uncond_scan50_8views": {
+    "scene": "MEAN(137)",
+    "chamfer": "0.05177270494780973",
+    "accuracy": "0.057338938499142914",
+    "completeness": "0.04620647139647653",
+    "precision": "0.7973212408759125",
+    "recall": "0.943144708029197",
+    "fscore": "0.8628685409596931",
+    "normal_consistency": "0.818178952655518"
+   },
+   "complete3dv2_100k_pts_uncond_scan50_merged_8views": {
+    "scene": "MEAN(137)",
+    "chamfer": "0.03887631970137385",
+    "accuracy": "0.053201142252706654",
+    "completeness": "0.024551497150041037",
+    "precision": "0.7926296715328467",
+    "recall": "0.9819364598540148",
+    "fscore": "0.8762864826775021",
+    "normal_consistency": "0.8779706628392077"
+   }
+  },
+  "station_split": {
+   "scaninput_p0.5": {
+    "scene": "MEAN(137)",
+    "obs_frac_gt": "0.944162883211679",
+    "obs_frac_pred": "1.0",
+    "obs_accuracy": "0.012394261394711734",
+    "obs_completeness": "0.016842425543340644",
+    "obs_chamfer": "0.014618343469026192",
+    "obs_precision": "0.9992538686131386",
+    "obs_recall": "0.9780494395653357",
+    "obs_fscore": "0.9885017665206317",
+    "unobs_frac_gt": "0.05583711678832116",
+    "unobs_frac_pred": "0.0",
+    "unobs_accuracy": "",
+    "unobs_completeness": "0.33170440208227925",
+    "unobs_chamfer": "",
+    "unobs_precision": "",
+    "unobs_recall": "0.0",
+    "unobs_fscore": ""
+   },
+   "complete3dv2_100k_pts_uncond_scan50_8views": {
+    "scene": "MEAN(137)",
+    "obs_frac_gt": "0.944162883211679",
+    "obs_frac_pred": "0.760993941605839",
+    "obs_accuracy": "0.05572590717269224",
+    "obs_completeness": "0.042160151222716304",
+    "obs_chamfer": "0.04894302919770428",
+    "obs_precision": "0.8090319929993359",
+    "obs_recall": "0.9548784844452385",
+    "obs_fscore": "0.8747758708936786",
+    "unobs_frac_gt": "0.05583711678832116",
+    "unobs_frac_pred": "0.2390060583941605",
+    "unobs_accuracy": "0.2638309006971013",
+    "unobs_completeness": "0.07519143420920353",
+    "unobs_chamfer": "0.16958620178214462",
+    "unobs_precision": "0.14692073873293784",
+    "unobs_recall": "0.8351786650071655",
+    "unobs_fscore": "0.2338084060542351"
+   },
+   "complete3dv2_100k_pts_uncond_scan50_merged_8views": {
+    "scene": "MEAN(137)",
+    "obs_frac_gt": "0.944162883211679",
+    "obs_frac_pred": "0.75228003649635",
+    "obs_accuracy": "0.0511657462916375",
+    "obs_completeness": "0.020762613975653006",
+    "obs_chamfer": "0.03596418013364527",
+    "obs_precision": "0.8046758606013142",
+    "obs_recall": "0.9963217988855305",
+    "obs_fscore": "0.889662452188094",
+    "unobs_frac_gt": "0.05583711678832116",
+    "unobs_frac_pred": "0.24771996350364958",
+    "unobs_accuracy": "0.2644955679183096",
+    "unobs_completeness": "0.07803743210511105",
+    "unobs_chamfer": "0.1713431980355434",
+    "unobs_precision": "0.14556461803911463",
+    "unobs_recall": "0.8201749187135327",
+    "unobs_fscore": "0.2315436995227491"
+   }
+  },
+  "merge": {
+   "n_scenes": 137,
+   "leakage_mean": 0.11778597806854776,
+   "leakage_median": 0.11704700436603155,
+   "faces_kept_mean": 0.6319213823187307,
+   "voxel_m": 0.02,
+   "trunc_m": 0.04,
+   "seam_m": 0.03
+  },
+  "observed_frac_gt": 0.944162883211679,
+  "n_cards": 7
  }
 }
