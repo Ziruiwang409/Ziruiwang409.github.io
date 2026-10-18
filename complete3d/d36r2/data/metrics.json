@@ -48,7 +48,7 @@
     "ur": 0.8703964552684152
    },
    "voxels_over_gt": 1.7225136607656304,
-   "area_over_gt": NaN
+   "area_over_gt": 2.8498533782094864
   },
   "complete3dv2s2r1_20k_pts_img_8views": {
    "label": "Complete3D-v2 + stage-2 run 1",
@@ -96,7 +96,7 @@
     "ur": 0.8807851634595285
    },
    "voxels_over_gt": 2.022195595512259,
-   "area_over_gt": NaN
+   "area_over_gt": 3.1615765031947913
   },
   "complete3dd36r2s2r2_20k_pts_img_8views": {
    "label": "D36 run 2 + stage-2 run 2",
@@ -120,7 +120,7 @@
     "ur": 0.9001842404771153
    },
    "voxels_over_gt": 2.020558562360109,
-   "area_over_gt": NaN
+   "area_over_gt": 1.999372706710683
   }
  }
 }

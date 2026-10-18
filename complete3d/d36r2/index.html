@@ -42,7 +42,7 @@
   <h1>Complete3D-v2 vs D36 run 2 (stock stage 2 · stage-2 run 2) on ScanNet++</h1>
   <div class="sub">D36 run 2 (stage 1: GenRecon init + LoRA, images · points · layout streams, 20k EMA) with the stock stage 2 and with the <b>D34 stage-2 evidence model, run 2</b> (20k EMA: run 1's recipe + D36's layout stream + training on D36 run 2's predicted tokens), against Complete3D-v2 · ScanNet++ test split, 8 DSLR views + VGGT points, no layout boxes · paired n = 136 · 2026-10-17 · companion pages: <a href="../index.html">image-only benchmark</a> · <a href="../vggt/index.html">v2 (VGGT)</a>
     · <a href="../completion/index.html">completion from a partial scan</a></div>
-  <p class="find"><b>3D:</b> stage-2 run 2 gives the best geometry so far: CD 0.0513 vs 0.0582 with the stock stage 2 and 0.0601 for v2; precision 0.849 vs 0.812. <b>2D:</b> it is clearly worse at the held-out views (2D completeness 0.911 vs 0.977, LPIPS 0.580 vs 0.495). The gallery shows why: flat surfaces (walls, doors) come out <b>perforated</b>, as strips with gaps. The 3D metrics barely see the holes: a GT point in a gap a few tens of cm wide still finds a strip edge within the 10 cm threshold, while the removed doubled layers raise precision. 2D completeness (the share of GT-visible pixels the prediction covers at all) does see them.</p>
+  <p class="find"><b>3D:</b> stage-2 run 2 gives the best geometry so far: CD 0.0513 vs 0.0582 with the stock stage 2 and 0.0601 for v2; precision 0.849 vs 0.812. <b>2D:</b> it is clearly worse at the held-out views (2D completeness 0.911 vs 0.977, LPIPS 0.580 vs 0.495). The gallery shows why: flat surfaces (walls, doors) come out <b>perforated</b>, as strips with gaps; its mesh has a median 63% of the stock stage 2's surface area. The 3D metrics barely see the holes: a GT point in a gap a few tens of cm wide still finds a strip edge within the 10 cm threshold, while the removed doubled layers raise precision. 2D completeness (the share of GT-visible pixels the prediction covers at all) does see them.</p>
 
   <div class="headline">
     <h2>3D geometry (paired n = 136)</h2>
@@ -78,10 +78,10 @@
     <h2>Over-fill</h2>
     <table id="tover"><thead><tr><th>run</th><th>surface voxels / GT (median)</th><th>mesh area / GT (median)</th></tr></thead><tbody>
 <tr><td>GenRecon</td><td>—</td><td>—</td></tr>
-<tr><td>Complete3D-v2 (stock stage 2)</td><td>1.72</td><td>—</td></tr>
+<tr><td>Complete3D-v2 (stock stage 2)</td><td>1.72</td><td>2.85</td></tr>
 <tr><td>Complete3D-v2 + stage-2 run 1</td><td>1.72</td><td>—</td></tr>
-<tr><td>D36 run 2 + stock stage 2</td><td>2.02</td><td>—</td></tr>
-<tr><td>D36 run 2 + stage-2 run 2</td><td>2.02</td><td>—</td></tr></tbody></table>
+<tr><td>D36 run 2 + stock stage 2</td><td>2.02</td><td>3.16</td></tr>
+<tr><td>D36 run 2 + stage-2 run 2</td><td>2.02</td><td>2.00</td></tr></tbody></table>
     <p class="note">Surface voxels: the final mesh voxelised on a 32³-per-chunk lattice vs the GT (coarse extent: a thickened or doubled
       surface in the same voxels counts once). Mesh area: total triangle area vs the GT laser mesh (fine: doubled layers count twice,
       holes count as missing area).</p>
