@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complete3D — D41 ablation</title>
+<style>
+  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
+  .wrap { max-width:1200px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+  h1 { font-size:1.7rem; margin:.2rem 0 .3rem; }
+  h2 { font-size:1.2rem; margin:2.2rem 0 .6rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; }
+  .sub { color:var(--muted); font-size:.95rem; margin-bottom:1rem; }
+  table { border-collapse:collapse; width:100%; font-size:.9rem; }
+  .headline table { width:auto; }
+  th, td { padding:.4rem .7rem; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { border-bottom:2px solid var(--fg); cursor:pointer; user-select:none; }
+  tbody tr:hover { background:var(--card); }
+  .best { font-weight:600; color:var(--accent); }
+  .note { color:var(--muted); font-size:.85rem; margin:.4rem 0 0; }
+  .controls { margin:.6rem 0 1rem; display:flex; gap:.8rem; align-items:center; flex-wrap:wrap; }
+  input[type=search] { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; min-width:220px; }
+  select { padding:.35rem .6rem; border:1px solid var(--line); border-radius:6px; background:var(--bg); cursor:pointer; }
+  .scenetable-box { max-height:480px; overflow:auto; border:1px solid var(--line); border-radius:8px; }
+  .gallery { display:grid; grid-template-columns:1fr; gap:1.2rem; max-width:1100px; }
+  .card { background:var(--card); border-radius:10px; overflow:hidden; }
+  .card .inputs-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px; }
+  .card img, .card video { width:100%; display:block; background:#eee; }
+  .card .inputs-row video { aspect-ratio:3/2; object-fit:cover; }
+  .card .recon video { aspect-ratio:6/1; object-fit:cover; }
+  .card .cap { display:flex; justify-content:space-between; padding:.45rem .7rem; font-size:.82rem; color:var(--muted); }
+  .lbl { font-size:.72rem; color:var(--muted); text-align:center; padding:.2rem 0; }
+  a { color:var(--accent); }
+
+  .card img { border-top:2px solid #fff; }
+  .card video { width:100%; display:block; background:#111; }
+  .lblrow { display:grid; grid-template-columns:repeat(5, 1fr); font-size:.8rem; color:var(--muted); text-align:center; padding:.25rem 0; }
+  .find { background:var(--card); border-left:3px solid var(--accent); padding:.7rem .9rem; font-size:.92rem; line-height:1.45; }</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>D41: observed-cell preservation (A vs B) on ScanNet++</h1>
+  <div class="sub">Stage 1 = Complete3D-v2 (100k) or a D41 arm (SAGE-only, GenRecon init + layout recipe, 20k EMA); stages 2 and 3 stock ·
+    inputs 8 DSLR views + VGGT-Omega points from those views (+ oracle layout boxes where marked) · paired n = 136 (3D), 136 (2D)
+    · 2026-10-19 · companion pages: <a href="../index.html">image-only benchmark</a> · <a href="../vggt/index.html">v2 (VGGT)</a> ·
+    <a href="../s2r1/index.html">v2 vs stage-2 run 1</a></div>
+  <p class="find">Two SAGE-only stage-1 fine-tunes from the released GenRecon model with the D36 layout recipe (20k steps): <b>A</b> trains with plain flow matching, <b>B</b> adds a term that keeps the cells the input observed (occupied or carved free). Same inputs as v2 (8 DSLR views + VGGT points; + layout = the oracle room boxes), stock stages 2 and 3. B + layout is the best 3D result: CD 0.0601 → 0.0566, F@10 0.840 → 0.849, better than v2 in 87/136 scenes; B without layout ties v2 in 3D (0.0604, 72/136). B's gain over A is higher observed precision (2 cm: 0.237 → 0.251 with layout) and fewer false positives in space the input never saw; surface in carved-free cells is unchanged. The 2D renders do not follow: B's normals and LPIPS are worse than A's (normal° 22.23 → 22.88, LPIPS 0.480 → 0.488 with layout), and A + layout keeps the best 2D row. In the gallery, the two largest gains are rooms where v2 leaves space empty and surface floating outside the room (e3b3b0d0c7, e050c15a8d); both layout runs fill them, and B without layout leaves more floating pieces than either. Filling is not always right: in e050c15a8d's held-out frames every D41 run puts a wall slab across the middle of the view. In the typical and loss scenes the four runs look alike at this scale; in defd3457db all four over-fill the lower half of the room relative to the GT.</p>
+  <div class="headline">
+    <h2>3D geometry (paired n = 136)</h2>
+    <table id="t3d"><thead><tr><th>run</th><th>CD ↓</th><th>acc ↓</th><th>compl ↓</th><th>P ↑</th><th>R ↑</th><th>F@10 ↑</th><th>NC ↑</th><th>CD better than v2</th></tr></thead><tbody>
+<tr><td>Complete3D-v2 (stock)</td><td>0.0601</td><td>0.0613</td><td>0.0590</td><td>0.793</td><td>0.899</td><td>0.840</td><td>0.797</td><td>—</td></tr>
+<tr><td>A + layout</td><td>0.0596</td><td>0.0614</td><td>0.0578</td><td>0.792</td><td>0.896</td><td>0.838</td><td>0.797</td><td>63/136</td></tr>
+<tr><td>B (no layout)</td><td>0.0604</td><td>0.0608</td><td>0.0599</td><td>0.796</td><td>0.894</td><td>0.839</td><td>0.792</td><td>72/136</td></tr>
+<tr><td>B + layout</td><td class="best">0.0566</td><td class="best">0.0600</td><td class="best">0.0531</td><td class="best">0.800</td><td class="best">0.909</td><td class="best">0.849</td><td class="best">0.800</td><td>87/136</td></tr></tbody></table>
+    <p class="note">CD = ½(accuracy + completeness), metres; P / R / F at 10 cm; predictions envelope-culled against the laser fusion
+      (15 cm), 200 k area samples. Last column: scenes where the run's CD is lower than v2's.</p>
+    <h2>2D rendered metrics (official held-out test frames, paired n = 136)</h2>
+    <table id="t2d"><thead><tr><th>run</th><th>depth MAE ↓</th><th>normal° ↓</th><th>2D compl ↑</th><th>LPIPS ↓</th></tr></thead><tbody>
+<tr><td>Complete3D-v2 (stock)</td><td>0.0955</td><td>22.32</td><td>0.988</td><td>0.481</td></tr>
+<tr><td>A + layout</td><td class="best">0.0918</td><td class="best">22.23</td><td>0.990</td><td class="best">0.480</td></tr>
+<tr><td>B (no layout)</td><td>0.1038</td><td>23.29</td><td>0.988</td><td>0.492</td></tr>
+<tr><td>B + layout</td><td>0.0938</td><td>22.88</td><td class="best">0.992</td><td>0.488</td></tr></tbody></table>
+    <p class="note">2D completeness = the share of pixels where the GT mesh is visible that the prediction covers at all.</p>
+    <h2>Completion: observed / unobserved regions (n = 136)</h2>
+    <table id="tsplit"><thead><tr><th>run</th><th>obs P@2cm ↑</th><th>obs P@5cm ↑</th><th>obs P@10cm ↑</th><th>obs R@10cm ↑</th><th>obs CD ↓</th><th>unobs CD ↓</th><th>unobs P@10cm ↑</th><th>unobs R@10cm ↑</th></tr></thead><tbody>
+<tr><td>Complete3D-v2 (stock)</td><td>0.236</td><td>0.552</td><td>0.805</td><td>0.912</td><td>0.0571</td><td>0.0667</td><td>0.753</td><td>0.870</td></tr>
+<tr><td>A + layout</td><td>0.237</td><td>0.547</td><td>0.802</td><td>0.904</td><td>0.0579</td><td>0.0642</td><td>0.756</td><td>0.878</td></tr>
+<tr><td>B (no layout)</td><td>0.246</td><td>0.549</td><td>0.807</td><td>0.908</td><td>0.0571</td><td>0.0684</td><td>0.755</td><td>0.855</td></tr>
+<tr><td>B + layout</td><td class="best">0.251</td><td class="best">0.557</td><td class="best">0.810</td><td class="best">0.919</td><td class="best">0.0546</td><td class="best">0.0629</td><td class="best">0.760</td><td class="best">0.881</td></tr></tbody></table>
+    <p class="note">A GT sample is observed if any of the 8 input views sees it (81% of the GT on average). Observed
+      precision = share of predicted samples in the observed region within the threshold of the GT; at 2 and 5 cm the distance is to the
+      GT mesh surface (the GT samples' own spacing would floor it), at 10 cm to the GT samples.</p>
+    <h2>Where the false positives are (n = 136)</h2>
+    <table id="tfp"><thead><tr><th>run</th><th>obs FP@2cm ↓</th><th>obs FP@5cm ↓</th><th>obs FP@10cm ↓</th><th>FP@10 in unknown cells ↓</th><th>FP@10 in carved-free cells ↓</th><th>surface in carved-free cells ↓</th></tr></thead><tbody>
+<tr><td>Complete3D-v2 (stock)</td><td>0.764</td><td>0.448</td><td>0.195</td><td>0.1143</td><td>0.0033</td><td>0.0246</td></tr>
+<tr><td>A + layout</td><td>0.763</td><td>0.453</td><td>0.198</td><td>0.1145</td><td class="best">0.0023</td><td>0.0216</td></tr>
+<tr><td>B (no layout)</td><td>0.754</td><td>0.451</td><td>0.193</td><td>0.1082</td><td>0.0026</td><td class="best">0.0199</td></tr>
+<tr><td>B + layout</td><td class="best">0.749</td><td class="best">0.443</td><td class="best">0.190</td><td class="best">0.1071</td><td>0.0026</td><td>0.0211</td></tr></tbody></table>
+    <p class="note">Observed-region false positives (predicted samples farther than the threshold from the GT). Cells: the input's own
+      evidence at 16 cm (carved free = a ray from a camera passed through it) and 32 cm (unknown = neither seen occupied nor carved);
+      the last three columns are shares of all predicted samples.</p>
+  </div>
+  <h2>Gallery — 3D orbits and held-out frames</h2>
+  <p class="note">Scenes: per-scene CD change (B + layout − v2) on the paired set → the two largest gains, the two closest to the median,
+    the two largest losses. Orbit: one shared camera path, textured meshes, ceiling and upper walls cut away. Frames: official DSLR test
+    frames (never input views); black = no surface.</p>
+  <div class="gallery"><div class="card"><div class="cap"><span><b>e3b3b0d0c7 · largest gain · CD 0.2294 / 0.1140 / 0.2475 / 0.1073 (B + layout − v2 -0.1222) · F@10 0.473 / 0.679 / 0.423 / 0.655</b></span></div><div class="lblrow"><span>Complete3D-v2 (stock)</span><span>A + layout</span><span>B (no layout)</span><span>B + layout</span><span>GT laser mesh</span></div><video src="videos/e3b3b0d0c7_orbit.mp4" poster="gallery/e3b3b0d0c7_orbit.jpg" autoplay muted loop playsinline controls></video><img src="gallery/e3b3b0d0c7_DSC07542.jpg" loading="lazy" alt="e3b3b0d0c7 e3b3b0d0c7_DSC07542.jpg"><img src="gallery/e3b3b0d0c7_DSC07543.jpg" loading="lazy" alt="e3b3b0d0c7 e3b3b0d0c7_DSC07543.jpg"><img src="gallery/e3b3b0d0c7_DSC07544.jpg" loading="lazy" alt="e3b3b0d0c7 e3b3b0d0c7_DSC07544.jpg"></div><div class="card"><div class="cap"><span><b>e050c15a8d · largest gain · CD 0.1932 / 0.1055 / 0.1901 / 0.1038 (B + layout − v2 -0.0895) · F@10 0.596 / 0.696 / 0.548 / 0.665</b></span></div><div class="lblrow"><span>Complete3D-v2 (stock)</span><span>A + layout</span><span>B (no layout)</span><span>B + layout</span><span>GT laser mesh</span></div><video src="videos/e050c15a8d_orbit.mp4" poster="gallery/e050c15a8d_orbit.jpg" autoplay muted loop playsinline controls></video><img src="gallery/e050c15a8d_DSC04839.jpg" loading="lazy" alt="e050c15a8d e050c15a8d_DSC04839.jpg"><img src="gallery/e050c15a8d_DSC04840.jpg" loading="lazy" alt="e050c15a8d e050c15a8d_DSC04840.jpg"><img src="gallery/e050c15a8d_DSC04841.jpg" loading="lazy" alt="e050c15a8d e050c15a8d_DSC04841.jpg"></div><div class="card"><div class="cap"><span><b>dc263dfbf0 · typical · CD 0.0579 / 0.0608 / 0.0554 / 0.0563 (B + layout − v2 -0.0016) · F@10 0.855 / 0.831 / 0.850 / 0.846</b></span></div><div class="lblrow"><span>Complete3D-v2 (stock)</span><span>A + layout</span><span>B (no layout)</span><span>B + layout</span><span>GT laser mesh</span></div><video src="videos/dc263dfbf0_orbit.mp4" poster="gallery/dc263dfbf0_orbit.jpg" autoplay muted loop playsinline controls></video><img src="gallery/dc263dfbf0_DSC00863.jpg" loading="lazy" alt="dc263dfbf0 dc263dfbf0_DSC00863.jpg"><img src="gallery/dc263dfbf0_DSC00864.jpg" loading="lazy" alt="dc263dfbf0 dc263dfbf0_DSC00864.jpg"><img src="gallery/dc263dfbf0_DSC00865.jpg" loading="lazy" alt="dc263dfbf0 dc263dfbf0_DSC00865.jpg"></div><div class="card"><div class="cap"><span><b>dc5f00843f · typical · CD 0.0564 / 0.0585 / 0.0564 / 0.0548 (B + layout − v2 -0.0016) · F@10 0.840 / 0.830 / 0.860 / 0.865</b></span></div><div class="lblrow"><span>Complete3D-v2 (stock)</span><span>A + layout</span><span>B (no layout)</span><span>B + layout</span><span>GT laser mesh</span></div><video src="videos/dc5f00843f_orbit.mp4" poster="gallery/dc5f00843f_orbit.jpg" autoplay muted loop playsinline controls></video><img src="gallery/dc5f00843f_DSC03585.jpg" loading="lazy" alt="dc5f00843f dc5f00843f_DSC03585.jpg"><img src="gallery/dc5f00843f_DSC03586.jpg" loading="lazy" alt="dc5f00843f dc5f00843f_DSC03586.jpg"><img src="gallery/dc5f00843f_DSC03587.jpg" loading="lazy" alt="dc5f00843f dc5f00843f_DSC03587.jpg"></div><div class="card"><div class="cap"><span><b>defd3457db · largest loss · CD 0.1154 / 0.1293 / 0.1278 / 0.1275 (B + layout − v2 +0.0121) · F@10 0.687 / 0.626 / 0.670 / 0.650</b></span></div><div class="lblrow"><span>Complete3D-v2 (stock)</span><span>A + layout</span><span>B (no layout)</span><span>B + layout</span><span>GT laser mesh</span></div><video src="videos/defd3457db_orbit.mp4" poster="gallery/defd3457db_orbit.jpg" autoplay muted loop playsinline controls></video><img src="gallery/defd3457db_f674dab1_DSC01982.jpg" loading="lazy" alt="defd3457db defd3457db_f674dab1_DSC01982.jpg"><img src="gallery/defd3457db_f674dab1_DSC01983.jpg" loading="lazy" alt="defd3457db defd3457db_f674dab1_DSC01983.jpg"><img src="gallery/defd3457db_f674dab1_DSC01984.jpg" loading="lazy" alt="defd3457db defd3457db_f674dab1_DSC01984.jpg"></div><div class="card"><div class="cap"><span><b>ef18cf0708 · largest loss · CD 0.0782 / 0.0908 / 0.0937 / 0.0926 (B + layout − v2 +0.0144) · F@10 0.778 / 0.756 / 0.745 / 0.756</b></span></div><div class="lblrow"><span>Complete3D-v2 (stock)</span><span>A + layout</span><span>B (no layout)</span><span>B + layout</span><span>GT laser mesh</span></div><video src="videos/ef18cf0708_orbit.mp4" poster="gallery/ef18cf0708_orbit.jpg" autoplay muted loop playsinline controls></video><img src="gallery/ef18cf0708_DSC03037.jpg" loading="lazy" alt="ef18cf0708 ef18cf0708_DSC03037.jpg"><img src="gallery/ef18cf0708_DSC03041.jpg" loading="lazy" alt="ef18cf0708 ef18cf0708_DSC03041.jpg"><img src="gallery/ef18cf0708_DSC03043.jpg" loading="lazy" alt="ef18cf0708 ef18cf0708_DSC03043.jpg"></div></div>
+  <h2>Per-scene results</h2>
+  <div class="scenetable-box"><table id="scenes"><thead><tr><th>scene</th><th>CD v2</th><th>CD A + layout</th><th>CD B</th><th>CD B + layout</th><th>Δ CD (B + layout − v2)</th><th>LPIPS v2</th><th>LPIPS A + layout</th><th>LPIPS B</th><th>LPIPS B + layout</th></tr></thead><tbody>
+<tr><td>dbd2a5961f</td><td>0.0740</td><td>0.0750</td><td>0.0729</td><td>0.0699</td><td>-0.0041</td><td>0.373</td><td>0.370</td><td>0.377</td><td>0.378</td></tr>
+<tr><td>dbd97b5bca</td><td>0.0521</td><td>0.0561</td><td>0.0523</td><td>0.0534</td><td>0.0013</td><td>0.522</td><td>0.527</td><td>0.535</td><td>0.525</td></tr>
+<tr><td>dc204f59ae</td><td>0.0842</td><td>0.0958</td><td>0.0942</td><td>0.0951</td><td>0.0110</td><td>0.500</td><td>0.498</td><td>0.510</td><td>0.499</td></tr>
+<tr><td>dc263dfbf0</td><td>0.0579</td><td>0.0608</td><td>0.0554</td><td>0.0563</td><td>-0.0016</td><td>0.430</td><td>0.440</td><td>0.456</td><td>0.448</td></tr>
+<tr><td>dc5f00843f</td><td>0.0564</td><td>0.0585</td><td>0.0564</td><td>0.0548</td><td>-0.0016</td><td>0.381</td><td>0.396</td><td>0.407</td><td>0.402</td></tr>
+<tr><td>dd636ce603</td><td>0.0640</td><td>0.0784</td><td>0.0747</td><td>0.0738</td><td>0.0098</td><td>0.495</td><td>0.506</td><td>0.557</td><td>0.515</td></tr>
+<tr><td>dd685be466</td><td>0.0465</td><td>0.0441</td><td>0.0460</td><td>0.0434</td><td>-0.0031</td><td>0.451</td><td>0.447</td><td>0.466</td><td>0.432</td></tr>
+<tr><td>de3c77cecd</td><td>0.0958</td><td>0.0905</td><td>0.0908</td><td>0.0969</td><td>0.0011</td><td>0.494</td><td>0.480</td><td>0.492</td><td>0.509</td></tr>
+<tr><td>de5881aa12</td><td>0.0485</td><td>0.0458</td><td>0.0468</td><td>0.0475</td><td>-0.0010</td><td>0.416</td><td>0.428</td><td>0.427</td><td>0.425</td></tr>
+<tr><td>de7dc9993f</td><td>0.0530</td><td>0.0563</td><td>0.0570</td><td>0.0573</td><td>0.0043</td><td>0.378</td><td>0.376</td><td>0.394</td><td>0.374</td></tr>
+<tr><td>de83a9c2d7</td><td>0.0534</td><td>0.0619</td><td>0.0555</td><td>0.0548</td><td>0.0015</td><td>0.325</td><td>0.327</td><td>0.333</td><td>0.353</td></tr>
+<tr><td>deb1867829</td><td>0.0567</td><td>0.0609</td><td>0.0713</td><td>0.0537</td><td>-0.0030</td><td>0.442</td><td>0.421</td><td>0.471</td><td>0.434</td></tr>
+<tr><td>dec0b11090</td><td>0.0613</td><td>0.0696</td><td>0.0695</td><td>0.0697</td><td>0.0084</td><td>0.443</td><td>0.454</td><td>0.460</td><td>0.467</td></tr>
+<tr><td>defd3457db</td><td>0.1154</td><td>0.1293</td><td>0.1278</td><td>0.1275</td><td>0.0121</td><td>0.499</td><td>0.494</td><td>0.534</td><td>0.526</td></tr>
+<tr><td>dfa70fb232</td><td>0.0644</td><td>0.0753</td><td>0.0740</td><td>0.0689</td><td>0.0044</td><td>0.479</td><td>0.471</td><td>0.478</td><td>0.482</td></tr>
+<tr><td>dfac5b38df</td><td>0.0453</td><td>0.0422</td><td>0.0415</td><td>0.0414</td><td>-0.0040</td><td>0.468</td><td>0.468</td><td>0.476</td><td>0.471</td></tr>
+<tr><td>e01b287af5</td><td>0.0437</td><td>0.0443</td><td>0.0380</td><td>0.0354</td><td>-0.0083</td><td>0.433</td><td>0.448</td><td>0.450</td><td>0.451</td></tr>
+<tr><td>e050c15a8d</td><td>0.1932</td><td>0.1055</td><td>0.1901</td><td>0.1038</td><td>-0.0895</td><td>0.631</td><td>0.602</td><td>0.644</td><td>0.614</td></tr>
+<tr><td>e0abd740ba</td><td>0.0360</td><td>0.0374</td><td>0.0380</td><td>0.0398</td><td>0.0037</td><td>0.372</td><td>0.384</td><td>0.379</td><td>0.380</td></tr>
+<tr><td>e0d1ed2159</td><td>0.0419</td><td>0.0448</td><td>0.0401</td><td>0.0405</td><td>-0.0014</td><td>0.441</td><td>0.455</td><td>0.492</td><td>0.506</td></tr>
+<tr><td>e0de253456</td><td>0.0396</td><td>0.0400</td><td>0.0413</td><td>0.0401</td><td>0.0006</td><td>0.609</td><td>0.605</td><td>0.611</td><td>0.637</td></tr>
+<tr><td>e1aa584dd5</td><td>0.0428</td><td>0.0532</td><td>0.0476</td><td>0.0481</td><td>0.0053</td><td>0.470</td><td>0.452</td><td>0.494</td><td>0.459</td></tr>
+<tr><td>e1b1d9de55</td><td>0.0540</td><td>0.0520</td><td>0.0537</td><td>0.0534</td><td>-0.0006</td><td>0.492</td><td>0.478</td><td>0.495</td><td>0.489</td></tr>
+<tr><td>e1fb8626c8</td><td>0.0840</td><td>0.0902</td><td>0.0837</td><td>0.0859</td><td>0.0019</td><td>0.371</td><td>0.383</td><td>0.374</td><td>0.374</td></tr>
+<tr><td>e2caaaf5b5</td><td>0.0525</td><td>0.0529</td><td>0.0502</td><td>0.0495</td><td>-0.0030</td><td>0.457</td><td>0.457</td><td>0.471</td><td>0.465</td></tr>
+<tr><td>e35232b92f</td><td>0.0513</td><td>0.0505</td><td>0.0504</td><td>0.0486</td><td>-0.0027</td><td>0.538</td><td>0.543</td><td>0.553</td><td>0.539</td></tr>
+<tr><td>e398684d27</td><td>0.0524</td><td>0.0565</td><td>0.0593</td><td>0.0554</td><td>0.0029</td><td>0.540</td><td>0.532</td><td>0.501</td><td>0.501</td></tr>
+<tr><td>e3ad7115db</td><td>0.0521</td><td>0.0562</td><td>0.0502</td><td>0.0494</td><td>-0.0027</td><td>0.483</td><td>0.484</td><td>0.498</td><td>0.469</td></tr>
+<tr><td>e3b3b0d0c7</td><td>0.2294</td><td>0.1140</td><td>0.2475</td><td>0.1073</td><td>-0.1222</td><td>0.638</td><td>0.612</td><td>0.662</td><td>0.630</td></tr>
+<tr><td>e3c1da58dd</td><td>0.0690</td><td>0.0767</td><td>0.0705</td><td>0.0665</td><td>-0.0024</td><td>0.411</td><td>0.417</td><td>0.407</td><td>0.404</td></tr>
+<tr><td>e3c39f4aea</td><td>0.0564</td><td>0.0582</td><td>0.0610</td><td>0.0569</td><td>0.0005</td><td>0.488</td><td>0.486</td><td>0.498</td><td>0.499</td></tr>
+<tr><td>e3ecd49e2b</td><td>0.0502</td><td>0.0538</td><td>0.0505</td><td>0.0515</td><td>0.0013</td><td>0.490</td><td>0.488</td><td>0.487</td><td>0.477</td></tr>
+<tr><td>e3ef8b690b</td><td>0.0507</td><td>0.0529</td><td>0.0502</td><td>0.0485</td><td>-0.0022</td><td>0.433</td><td>0.413</td><td>0.423</td><td>0.407</td></tr>
+<tr><td>e4007ff6b5</td><td>0.0621</td><td>0.0668</td><td>0.0691</td><td>0.0628</td><td>0.0007</td><td>0.535</td><td>0.529</td><td>0.569</td><td>0.523</td></tr>
+<tr><td>e4e625a3e4</td><td>0.0466</td><td>0.0471</td><td>0.0487</td><td>0.0509</td><td>0.0044</td><td>0.443</td><td>0.440</td><td>0.427</td><td>0.445</td></tr>
+<tr><td>e4fb2a623b</td><td>0.0499</td><td>0.0448</td><td>0.0471</td><td>0.0475</td><td>-0.0024</td><td>0.429</td><td>0.434</td><td>0.452</td><td>0.452</td></tr>
+<tr><td>e51b753e48</td><td>0.0542</td><td>0.0569</td><td>0.0549</td><td>0.0527</td><td>-0.0016</td><td>0.588</td><td>0.588</td><td>0.587</td><td>0.584</td></tr>
+<tr><td>e5a769dbf5</td><td>0.0631</td><td>0.0824</td><td>0.0459</td><td>0.0566</td><td>-0.0064</td><td>0.332</td><td>0.353</td><td>0.366</td><td>0.350</td></tr>
+<tr><td>e6372539da</td><td>0.0520</td><td>0.0511</td><td>0.0507</td><td>0.0493</td><td>-0.0027</td><td>0.460</td><td>0.469</td><td>0.455</td><td>0.448</td></tr>
+<tr><td>e6671918c8</td><td>0.0500</td><td>0.0488</td><td>0.0496</td><td>0.0471</td><td>-0.0028</td><td>0.586</td><td>0.597</td><td>0.608</td><td>0.593</td></tr>
+<tr><td>e667e09fe6</td><td>0.0601</td><td>0.0578</td><td>0.0613</td><td>0.0587</td><td>-0.0013</td><td>0.509</td><td>0.497</td><td>0.517</td><td>0.517</td></tr>
+<tr><td>e69064f2f3</td><td>0.0546</td><td>0.0511</td><td>0.0507</td><td>0.0546</td><td>-0.0000</td><td>0.555</td><td>0.562</td><td>0.572</td><td>0.583</td></tr>
+<tr><td>e7ac609391</td><td>0.0661</td><td>0.0704</td><td>0.0998</td><td>0.0695</td><td>0.0034</td><td>0.723</td><td>0.734</td><td>0.788</td><td>0.756</td></tr>
+<tr><td>e7af285f7d</td><td>0.0745</td><td>0.0637</td><td>0.0678</td><td>0.0636</td><td>-0.0109</td><td>0.560</td><td>0.574</td><td>0.603</td><td>0.571</td></tr>
+<tr><td>e7ccd75e5d</td><td>0.0507</td><td>0.0524</td><td>0.0478</td><td>0.0484</td><td>-0.0023</td><td>0.435</td><td>0.449</td><td>0.445</td><td>0.443</td></tr>
+<tr><td>e7d7e7799d</td><td>0.0493</td><td>0.0432</td><td>0.0456</td><td>0.0458</td><td>-0.0035</td><td>0.523</td><td>0.537</td><td>0.513</td><td>0.518</td></tr>
+<tr><td>e814070fd4</td><td>0.0496</td><td>0.0515</td><td>0.0580</td><td>0.0537</td><td>0.0041</td><td>0.372</td><td>0.382</td><td>0.395</td><td>0.384</td></tr>
+<tr><td>e81c8b3eec</td><td>0.0437</td><td>0.0440</td><td>0.0435</td><td>0.0435</td><td>-0.0002</td><td>0.482</td><td>0.493</td><td>0.502</td><td>0.500</td></tr>
+<tr><td>e86c6742b9</td><td>0.0766</td><td>0.0903</td><td>0.0715</td><td>0.0804</td><td>0.0037</td><td>0.406</td><td>0.445</td><td>0.413</td><td>0.444</td></tr>
+<tr><td>e87f1ebcac</td><td>0.0608</td><td>0.0632</td><td>0.0721</td><td>0.0727</td><td>0.0119</td><td>0.560</td><td>0.552</td><td>0.565</td><td>0.555</td></tr>
+<tr><td>e898c76c1f</td><td>0.0569</td><td>0.0478</td><td>0.0480</td><td>0.0430</td><td>-0.0138</td><td>0.371</td><td>0.371</td><td>0.393</td><td>0.398</td></tr>
+<tr><td>e8e81396b6</td><td>0.0417</td><td>0.0421</td><td>0.0426</td><td>0.0423</td><td>0.0006</td><td>0.538</td><td>0.536</td><td>0.562</td><td>0.542</td></tr>
+<tr><td>e8ea9b4da8</td><td>0.0485</td><td>0.0472</td><td>0.0415</td><td>0.0425</td><td>-0.0060</td><td>0.598</td><td>0.589</td><td>0.585</td><td>0.591</td></tr>
+<tr><td>e909f8213d</td><td>0.0460</td><td>0.0441</td><td>0.0450</td><td>0.0389</td><td>-0.0071</td><td>0.505</td><td>0.543</td><td>0.532</td><td>0.520</td></tr>
+<tr><td>e91722b5a3</td><td>0.0692</td><td>0.0750</td><td>0.0703</td><td>0.0668</td><td>-0.0024</td><td>0.467</td><td>0.454</td><td>0.464</td><td>0.468</td></tr>
+<tr><td>e93cd5230e</td><td>0.0631</td><td>0.0742</td><td>0.0637</td><td>0.0680</td><td>0.0049</td><td>0.424</td><td>0.383</td><td>0.393</td><td>0.405</td></tr>
+<tr><td>e945643bef</td><td>0.0454</td><td>0.0527</td><td>0.0470</td><td>0.0458</td><td>0.0004</td><td>0.419</td><td>0.420</td><td>0.443</td><td>0.422</td></tr>
+<tr><td>e9ac2fc517</td><td>0.0770</td><td>0.0983</td><td>0.0806</td><td>0.0782</td><td>0.0011</td><td>0.571</td><td>0.565</td><td>0.574</td><td>0.565</td></tr>
+<tr><td>e9e16b6043</td><td>0.0531</td><td>0.0434</td><td>0.0440</td><td>0.0421</td><td>-0.0110</td><td>0.548</td><td>0.536</td><td>0.545</td><td>0.554</td></tr>
+<tr><td>ea3b3710a2</td><td>0.0451</td><td>0.0459</td><td>0.0432</td><td>0.0428</td><td>-0.0023</td><td>0.547</td><td>0.524</td><td>0.529</td><td>0.545</td></tr>
+<tr><td>ea42cd27e6</td><td>0.0460</td><td>0.0473</td><td>0.0507</td><td>0.0476</td><td>0.0015</td><td>0.405</td><td>0.420</td><td>0.430</td><td>0.428</td></tr>
+<tr><td>eaa6c90310</td><td>0.0463</td><td>0.0460</td><td>0.0469</td><td>0.0457</td><td>-0.0006</td><td>0.542</td><td>0.540</td><td>0.531</td><td>0.542</td></tr>
+<tr><td>eaab7bcc15</td><td>0.0609</td><td>0.0565</td><td>0.0581</td><td>0.0562</td><td>-0.0048</td><td>0.515</td><td>0.519</td><td>0.527</td><td>0.533</td></tr>
+<tr><td>eab5494dca</td><td>0.0587</td><td>0.0563</td><td>0.0581</td><td>0.0563</td><td>-0.0024</td><td>0.550</td><td>0.535</td><td>0.532</td><td>0.524</td></tr>
+<tr><td>eb4bc76767</td><td>0.0521</td><td>0.0448</td><td>0.0441</td><td>0.0444</td><td>-0.0076</td><td>0.558</td><td>0.540</td><td>0.533</td><td>0.547</td></tr>
+<tr><td>eb8ef9b4cc</td><td>0.0379</td><td>0.0386</td><td>0.0407</td><td>0.0393</td><td>0.0013</td><td>0.406</td><td>0.400</td><td>0.404</td><td>0.410</td></tr>
+<tr><td>ebc200e928</td><td>0.0519</td><td>0.0497</td><td>0.0482</td><td>0.0478</td><td>-0.0041</td><td>0.446</td><td>0.449</td><td>0.464</td><td>0.483</td></tr>
+<tr><td>ec2cb8dae1</td><td>0.0567</td><td>0.0547</td><td>0.0516</td><td>0.0510</td><td>-0.0058</td><td>0.439</td><td>0.443</td><td>0.472</td><td>0.479</td></tr>
+<tr><td>ec614d4e30</td><td>0.0489</td><td>0.0470</td><td>0.0412</td><td>0.0397</td><td>-0.0092</td><td>0.433</td><td>0.409</td><td>0.433</td><td>0.425</td></tr>
+<tr><td>ec9ff6051d</td><td>0.0471</td><td>0.0514</td><td>0.0505</td><td>0.0484</td><td>0.0013</td><td>0.507</td><td>0.515</td><td>0.510</td><td>0.498</td></tr>
+<tr><td>ed2216380b</td><td>0.0644</td><td>0.0572</td><td>0.0485</td><td>0.0488</td><td>-0.0155</td><td>0.394</td><td>0.397</td><td>0.404</td><td>0.409</td></tr>
+<tr><td>edbf65c385</td><td>0.0560</td><td>0.0518</td><td>0.0469</td><td>0.0474</td><td>-0.0086</td><td>0.519</td><td>0.524</td><td>0.534</td><td>0.531</td></tr>
+<tr><td>edced53026</td><td>0.0474</td><td>0.0466</td><td>0.0444</td><td>0.0460</td><td>-0.0014</td><td>0.456</td><td>0.460</td><td>0.457</td><td>0.461</td></tr>
+<tr><td>eea4ad9c04</td><td>0.0766</td><td>0.0708</td><td>0.0690</td><td>0.0684</td><td>-0.0081</td><td>0.551</td><td>0.547</td><td>0.534</td><td>0.544</td></tr>
+<tr><td>eee7eef8e5</td><td>0.0779</td><td>0.0811</td><td>0.0749</td><td>0.0746</td><td>-0.0033</td><td>0.508</td><td>0.486</td><td>0.486</td><td>0.486</td></tr>
+<tr><td>eeeb9836b8</td><td>0.0450</td><td>0.0460</td><td>0.0505</td><td>0.0469</td><td>0.0019</td><td>0.446</td><td>0.446</td><td>0.513</td><td>0.488</td></tr>
+<tr><td>ef18cf0708</td><td>0.0782</td><td>0.0908</td><td>0.0937</td><td>0.0926</td><td>0.0144</td><td>0.449</td><td>0.459</td><td>0.469</td><td>0.468</td></tr>
+<tr><td>ef25276c25</td><td>0.0569</td><td>0.0573</td><td>0.0538</td><td>0.0530</td><td>-0.0039</td><td>0.504</td><td>0.512</td><td>0.506</td><td>0.509</td></tr>
+<tr><td>ef60db4e8c</td><td>0.0589</td><td>0.0557</td><td>0.0586</td><td>0.0565</td><td>-0.0024</td><td>0.520</td><td>0.511</td><td>0.509</td><td>0.515</td></tr>
+<tr><td>ef69d58016</td><td>0.0473</td><td>0.0460</td><td>0.0467</td><td>0.0461</td><td>-0.0012</td><td>0.579</td><td>0.558</td><td>0.572</td><td>0.580</td></tr>
+<tr><td>ef9428c5cd</td><td>0.0643</td><td>0.0635</td><td>0.0718</td><td>0.0722</td><td>0.0080</td><td>0.419</td><td>0.416</td><td>0.425</td><td>0.430</td></tr>
+<tr><td>f07340dfea</td><td>0.0472</td><td>0.0459</td><td>0.0486</td><td>0.0489</td><td>0.0017</td><td>0.411</td><td>0.420</td><td>0.434</td><td>0.451</td></tr>
+<tr><td>f19ca0a52e</td><td>0.0409</td><td>0.0431</td><td>0.0413</td><td>0.0409</td><td>-0.0001</td><td>0.385</td><td>0.348</td><td>0.389</td><td>0.386</td></tr>
+<tr><td>f1e01af60a</td><td>0.0479</td><td>0.0465</td><td>0.0521</td><td>0.0516</td><td>0.0036</td><td>0.474</td><td>0.476</td><td>0.480</td><td>0.496</td></tr>
+<tr><td>f1efd25854</td><td>0.0450</td><td>0.0422</td><td>0.0385</td><td>0.0383</td><td>-0.0067</td><td>0.432</td><td>0.436</td><td>0.391</td><td>0.422</td></tr>
+<tr><td>f20ccd91de</td><td>0.0500</td><td>0.0481</td><td>0.0475</td><td>0.0474</td><td>-0.0025</td><td>0.537</td><td>0.537</td><td>0.554</td><td>0.538</td></tr>
+<tr><td>f248c2bcdc</td><td>0.0772</td><td>0.0719</td><td>0.0741</td><td>0.0654</td><td>-0.0118</td><td>0.574</td><td>0.566</td><td>0.580</td><td>0.571</td></tr>
+<tr><td>f25f5e6f63</td><td>0.0592</td><td>0.0591</td><td>0.0551</td><td>0.0555</td><td>-0.0036</td><td>0.498</td><td>0.502</td><td>0.515</td><td>0.515</td></tr>
+<tr><td>f2dc06b1d2</td><td>0.0394</td><td>0.0403</td><td>0.0452</td><td>0.0422</td><td>0.0028</td><td>0.552</td><td>0.541</td><td>0.564</td><td>0.569</td></tr>
+<tr><td>f2e6c43543</td><td>0.0805</td><td>0.0637</td><td>0.0946</td><td>0.0804</td><td>-0.0001</td><td>0.559</td><td>0.535</td><td>0.570</td><td>0.526</td></tr>
+<tr><td>f2ec1f6a04</td><td>0.0490</td><td>0.0485</td><td>0.0444</td><td>0.0447</td><td>-0.0043</td><td>0.400</td><td>0.431</td><td>0.420</td><td>0.408</td></tr>
+<tr><td>f311090fa6</td><td>0.0507</td><td>0.0512</td><td>0.0484</td><td>0.0471</td><td>-0.0036</td><td>0.501</td><td>0.504</td><td>0.527</td><td>0.512</td></tr>
+<tr><td>f33e242463</td><td>0.0597</td><td>0.0573</td><td>0.0502</td><td>0.0525</td><td>-0.0071</td><td>0.393</td><td>0.388</td><td>0.445</td><td>0.464</td></tr>
+<tr><td>f34d532901</td><td>0.0618</td><td>0.0566</td><td>0.0515</td><td>0.0508</td><td>-0.0110</td><td>0.461</td><td>0.454</td><td>0.463</td><td>0.475</td></tr>
+<tr><td>f3685d06a9</td><td>0.0436</td><td>0.0493</td><td>0.0458</td><td>0.0461</td><td>0.0025</td><td>0.553</td><td>0.558</td><td>0.574</td><td>0.540</td></tr>
+<tr><td>f368a1f730</td><td>0.0400</td><td>0.0387</td><td>0.0362</td><td>0.0369</td><td>-0.0031</td><td>0.509</td><td>0.530</td><td>0.519</td><td>0.527</td></tr>
+<tr><td>f36e3e1e53</td><td>0.0492</td><td>0.0543</td><td>0.0541</td><td>0.0563</td><td>0.0071</td><td>0.483</td><td>0.475</td><td>0.513</td><td>0.500</td></tr>
+<tr><td>f38b0108a1</td><td>0.0646</td><td>0.0730</td><td>0.0720</td><td>0.0633</td><td>-0.0013</td><td>0.485</td><td>0.474</td><td>0.495</td><td>0.488</td></tr>
+<tr><td>f3d64c30f8</td><td>0.1693</td><td>0.1688</td><td>0.1725</td><td>0.1696</td><td>0.0003</td><td>0.495</td><td>0.491</td><td>0.512</td><td>0.493</td></tr>
+<tr><td>f3f016ba3f</td><td>0.0436</td><td>0.0483</td><td>0.0436</td><td>0.0432</td><td>-0.0004</td><td>0.395</td><td>0.412</td><td>0.402</td><td>0.394</td></tr>
+<tr><td>f47ec86138</td><td>0.0706</td><td>0.0645</td><td>0.0573</td><td>0.0552</td><td>-0.0154</td><td>0.433</td><td>0.422</td><td>0.427</td><td>0.407</td></tr>
+<tr><td>f4c5b0646f</td><td>0.0427</td><td>0.0415</td><td>0.0440</td><td>0.0435</td><td>0.0009</td><td>0.437</td><td>0.466</td><td>0.468</td><td>0.481</td></tr>
+<tr><td>f5401524e5</td><td>0.0418</td><td>0.0467</td><td>0.0425</td><td>0.0423</td><td>0.0005</td><td>0.527</td><td>0.527</td><td>0.544</td><td>0.548</td></tr>
+<tr><td>f5726eeeb2</td><td>0.0459</td><td>0.0450</td><td>0.0404</td><td>0.0402</td><td>-0.0056</td><td>0.510</td><td>0.524</td><td>0.502</td><td>0.510</td></tr>
+<tr><td>f576071590</td><td>0.0493</td><td>0.0484</td><td>0.0503</td><td>0.0457</td><td>-0.0036</td><td>0.448</td><td>0.465</td><td>0.470</td><td>0.459</td></tr>
+<tr><td>f6659a3107</td><td>0.0546</td><td>0.0583</td><td>0.0550</td><td>0.0544</td><td>-0.0001</td><td>0.411</td><td>0.419</td><td>0.428</td><td>0.410</td></tr>
+<tr><td>f6a9b64a0d</td><td>0.0516</td><td>0.0564</td><td>0.0496</td><td>0.0461</td><td>-0.0055</td><td>0.589</td><td>0.589</td><td>0.580</td><td>0.592</td></tr>
+<tr><td>f7d34e6706</td><td>0.0623</td><td>0.0670</td><td>0.0742</td><td>0.0662</td><td>0.0039</td><td>0.525</td><td>0.519</td><td>0.546</td><td>0.541</td></tr>
+<tr><td>f7da3f0714</td><td>0.0515</td><td>0.0481</td><td>0.0506</td><td>0.0495</td><td>-0.0021</td><td>0.490</td><td>0.483</td><td>0.481</td><td>0.494</td></tr>
+<tr><td>f8062cb7ce</td><td>0.1284</td><td>0.1294</td><td>0.1272</td><td>0.1224</td><td>-0.0059</td><td>0.431</td><td>0.395</td><td>0.420</td><td>0.406</td></tr>
+<tr><td>f847086d15</td><td>0.0426</td><td>0.0429</td><td>0.0428</td><td>0.0416</td><td>-0.0010</td><td>0.415</td><td>0.412</td><td>0.421</td><td>0.428</td></tr>
+<tr><td>f8d5147d1d</td><td>0.0383</td><td>0.0394</td><td>0.0405</td><td>0.0388</td><td>0.0005</td><td>0.341</td><td>0.335</td><td>0.351</td><td>0.349</td></tr>
+<tr><td>f8e13ab4ae</td><td>0.0419</td><td>0.0424</td><td>0.0407</td><td>0.0408</td><td>-0.0010</td><td>0.423</td><td>0.410</td><td>0.430</td><td>0.425</td></tr>
+<tr><td>f8eac0ad24</td><td>0.0431</td><td>0.0424</td><td>0.0424</td><td>0.0414</td><td>-0.0017</td><td>0.463</td><td>0.454</td><td>0.465</td><td>0.469</td></tr>
+<tr><td>f8f12e4e6b</td><td>0.0470</td><td>0.0486</td><td>0.0499</td><td>0.0507</td><td>0.0037</td><td>0.466</td><td>0.464</td><td>0.475</td><td>0.478</td></tr>
+<tr><td>f9397af4cb</td><td>0.0538</td><td>0.0524</td><td>0.0498</td><td>0.0476</td><td>-0.0062</td><td>0.453</td><td>0.451</td><td>0.464</td><td>0.478</td></tr>
+<tr><td>f97de2c3e9</td><td>0.0637</td><td>0.0674</td><td>0.0680</td><td>0.0649</td><td>0.0011</td><td>0.585</td><td>0.578</td><td>0.611</td><td>0.602</td></tr>
+<tr><td>f9f95681fd</td><td>0.0373</td><td>0.0367</td><td>0.0381</td><td>0.0381</td><td>0.0007</td><td>0.462</td><td>0.467</td><td>0.473</td><td>0.476</td></tr>
+<tr><td>faba6e97d7</td><td>0.0454</td><td>0.0454</td><td>0.0431</td><td>0.0429</td><td>-0.0025</td><td>0.417</td><td>0.412</td><td>0.443</td><td>0.453</td></tr>
+<tr><td>faec2f0468</td><td>0.0945</td><td>0.0977</td><td>0.1107</td><td>0.0892</td><td>-0.0053</td><td>0.645</td><td>0.661</td><td>0.691</td><td>0.665</td></tr>
+<tr><td>fb05e13ad1</td><td>0.0452</td><td>0.0470</td><td>0.0459</td><td>0.0465</td><td>0.0013</td><td>0.436</td><td>0.439</td><td>0.442</td><td>0.441</td></tr>
+<tr><td>fb152519ad</td><td>0.0729</td><td>0.0693</td><td>0.0722</td><td>0.0665</td><td>-0.0063</td><td>0.575</td><td>0.565</td><td>0.574</td><td>0.575</td></tr>
+<tr><td>fb564c935d</td><td>0.0558</td><td>0.0557</td><td>0.0537</td><td>0.0524</td><td>-0.0034</td><td>0.448</td><td>0.444</td><td>0.444</td><td>0.438</td></tr>
+<tr><td>fb5a96b1a2</td><td>0.0601</td><td>0.0629</td><td>0.0560</td><td>0.0545</td><td>-0.0056</td><td>0.440</td><td>0.447</td><td>0.439</td><td>0.437</td></tr>
+<tr><td>fb893ffaf3</td><td>0.0941</td><td>0.0866</td><td>0.0936</td><td>0.0842</td><td>-0.0099</td><td>0.603</td><td>0.584</td><td>0.630</td><td>0.602</td></tr>
+<tr><td>fb9b4c2f15</td><td>0.0446</td><td>0.0416</td><td>0.0397</td><td>0.0379</td><td>-0.0066</td><td>0.436</td><td>0.417</td><td>0.412</td><td>0.431</td></tr>
+<tr><td>fc2875ea52</td><td>0.0713</td><td>0.0686</td><td>0.0804</td><td>0.0600</td><td>-0.0114</td><td>0.515</td><td>0.549</td><td>0.612</td><td>0.547</td></tr>
+<tr><td>fc85fb414c</td><td>0.0479</td><td>0.0500</td><td>0.0481</td><td>0.0478</td><td>-0.0001</td><td>0.413</td><td>0.385</td><td>0.422</td><td>0.421</td></tr>
+<tr><td>fd361ab85f</td><td>0.0572</td><td>0.0560</td><td>0.0561</td><td>0.0582</td><td>0.0010</td><td>0.486</td><td>0.487</td><td>0.488</td><td>0.482</td></tr>
+<tr><td>fd8560cfd6</td><td>0.0494</td><td>0.0561</td><td>0.0527</td><td>0.0505</td><td>0.0010</td><td>0.483</td><td>0.521</td><td>0.525</td><td>0.509</td></tr>
+<tr><td>fde8a3b4c0</td><td>0.0827</td><td>0.0746</td><td>0.0958</td><td>0.0685</td><td>-0.0142</td><td>0.553</td><td>0.535</td><td>0.558</td><td>0.552</td></tr>
+<tr><td>fdf7f5cd5d</td><td>0.0636</td><td>0.0744</td><td>0.0644</td><td>0.0584</td><td>-0.0052</td><td>0.428</td><td>0.430</td><td>0.450</td><td>0.427</td></tr>
+<tr><td>fe1733741f</td><td>0.0825</td><td>0.0805</td><td>0.0807</td><td>0.0800</td><td>-0.0026</td><td>0.573</td><td>0.580</td><td>0.580</td><td>0.593</td></tr>
+<tr><td>fe3fc057a1</td><td>0.0490</td><td>0.0491</td><td>0.0468</td><td>0.0472</td><td>-0.0018</td><td>0.517</td><td>0.517</td><td>0.528</td><td>0.515</td></tr>
+<tr><td>fe5fe0a8a4</td><td>0.1211</td><td>0.1035</td><td>0.0838</td><td>0.0583</td><td>-0.0628</td><td>0.498</td><td>0.493</td><td>0.502</td><td>0.474</td></tr>
+<tr><td>ff17657f71</td><td>0.0387</td><td>0.0452</td><td>0.0409</td><td>0.0412</td><td>0.0025</td><td>0.393</td><td>0.401</td><td>0.406</td><td>0.398</td></tr></tbody></table></div>
+  <p class="note">Source: experiments/genrecon_eval/results/&lt;run&gt;/scannetpp/{summary.csv, 2d/summary_2d.csv, viewsplit/} and
+    results/diag_v2_observed_fp_cells/&lt;run&gt;/; table values in <a href="data/metrics.json">data/metrics.json</a>.</p>
+</div>
+<script>
+document.querySelectorAll("table").forEach(t => t.querySelectorAll("thead th").forEach((th, i) => th.onclick = () => {
+  const tb = t.tBodies[0], rs = [...tb.rows], asc = th.dataset.asc !== "1"; th.dataset.asc = asc ? "1" : "0";
+  rs.sort((p, q) => { const x = p.cells[i].innerText, y = q.cells[i].innerText, nx = parseFloat(x), ny = parseFloat(y);
+    return (isNaN(nx) || isNaN(ny) ? x.localeCompare(y) : nx - ny) * (asc ? 1 : -1); });
+  rs.forEach(r => tb.appendChild(r)); }));
+</script>
+</body>
+</html>
