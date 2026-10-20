@@ -1,0 +1,35 @@
+{
+ "format": "d44-teacher-v1",
+ "dir": "/u/ziruiw3/projects/proj-scene-completion/experiments/genrecon_eval/d44_teacher_latents",
+ "scenes_wanted": 250,
+ "scenes_done": 250,
+ "scenes_missing": [],
+ "n_chunks": 2149,
+ "default_gate": {
+  "precision_tol": 0.9,
+  "recall_tol": 0.85,
+  "n_laser_occ": 500
+ },
+ "n_chunks_pass_default_gate": 2096,
+ "pass_share": 0.9753373662168451,
+ "chunk_gate_median": {
+  "precision": 0.8929692404268675,
+  "recall": 0.7649765621640219,
+  "f": 0.817368437930924,
+  "precision_tol": 0.9959005669428697,
+  "recall_tol": 0.9893276414087513,
+  "f_tol": 0.9914136083563246,
+  "free_filled": 0.012090669863751359,
+  "unobserved_occ_share": 0.5369450714823175
+ },
+ "chunk_gate_p10": {
+  "precision": 0.8126706920388133,
+  "recall": 0.600781477173597,
+  "f": 0.7066467001508492,
+  "precision_tol": 0.9743507525523015,
+  "recall_tol": 0.9632065200893779,
+  "f_tol": 0.9655626860857177,
+  "free_filled": 0.005324925804148005,
+  "unobserved_occ_share": 0.37194630752490737
+ }
+}
