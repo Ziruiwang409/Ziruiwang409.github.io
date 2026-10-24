@@ -54,7 +54,11 @@
     <b>Result:</b> estimated depth CD 0.0830 (control) → 0.0760 (student), better in 47/50 scenes (sign p 4e-11);
     sensor depth 0.0686 → 0.0664, better in 39/50 (p 9e-05). The control alone matches D41 B (estimated 0.0823),
     so the gain is the teacher data. Gains are in recall / completeness, accuracy, all WorldRecon 2D metrics and unobserved recall;
-    precision is about flat, and with estimated depth the FP samples in carved-free cells rise slightly (not significant).</p>
+    precision is about flat, and with estimated depth the FP samples in carved-free cells rise slightly (not significant).
+    In the gallery, the largest gain (9071e139d9, CD 0.108 → 0.057) is a long office where D41 B and the control build a wrong far wall (a door
+    section and displaced windows in the held-out frames) and slabs outside the room; the student recovers the window wall, at the price of a
+    few floating ceiling panels. The largest losses are small (+0.002 / +0.003): close views of a door with notices (5eb31827b7) where the
+    student adds a stray plank. Object colours vary between runs because stage 3 is stock in all rows.</p>
   <div class="headline">
     <h2>Student vs control, paired per scene (n = 50)</h2>
     <table id="tpair"><thead><tr><th>metric</th><th>est: Δ (student − control)</th><th>est: student better / worse</th><th>est: sign p</th><th>sensor: Δ</th><th>sensor: better / worse</th><th>sensor: sign p</th></tr></thead><tbody>
