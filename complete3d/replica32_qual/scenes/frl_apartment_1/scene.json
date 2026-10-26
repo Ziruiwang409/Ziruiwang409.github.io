@@ -1,0 +1,195 @@
+{
+ "scene": "frl_apartment_1",
+ "index": 11,
+ "seed": 11,
+ "roof_cut_z_m": 0.7848996877670288,
+ "input_views": [
+  {
+   "k": 0,
+   "index": 3,
+   "file": "images/nv_02.png",
+   "image": "frl_apartment_1/inputs/view_0.jpg"
+  },
+  {
+   "k": 1,
+   "index": 14,
+   "file": "images/nv_10.png",
+   "image": "frl_apartment_1/inputs/view_1.jpg"
+  },
+  {
+   "k": 2,
+   "index": 18,
+   "file": "images/nv_13.png",
+   "image": "frl_apartment_1/inputs/view_2.jpg"
+  },
+  {
+   "k": 3,
+   "index": 19,
+   "file": "images/nv_14.png",
+   "image": "frl_apartment_1/inputs/view_3.jpg"
+  },
+  {
+   "k": 4,
+   "index": 23,
+   "file": "images/nv_17.png",
+   "image": "frl_apartment_1/inputs/view_4.jpg"
+  },
+  {
+   "k": 5,
+   "index": 27,
+   "file": "images/nv_20.png",
+   "image": "frl_apartment_1/inputs/view_5.jpg"
+  }
+ ],
+ "heldout_views": [
+  {
+   "k": 0,
+   "index": 1,
+   "file": "images/test_01.png",
+   "gt_image": "frl_apartment_1/s2_gt_0.jpg"
+  },
+  {
+   "k": 1,
+   "index": 7,
+   "file": "images/test_07.png",
+   "gt_image": "frl_apartment_1/s2_gt_1.jpg"
+  },
+  {
+   "k": 2,
+   "index": 8,
+   "file": "images/test_08.png",
+   "gt_image": "frl_apartment_1/s2_gt_2.jpg"
+  },
+  {
+   "k": 3,
+   "index": 12,
+   "file": "images/test_12.png",
+   "gt_image": "frl_apartment_1/s2_gt_3.jpg"
+  }
+ ],
+ "camera": {
+  "c2w_blender": [
+   [
+    0.0,
+    -0.642788,
+    0.766044,
+    15.182411
+   ],
+   [
+    1.0,
+    0.0,
+    -0.0,
+    2.649422
+   ],
+   [
+    -0.0,
+    0.766044,
+    0.642788,
+    10.044963
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "K_norm": [
+   [
+    0.866025,
+    0.0,
+    0.5
+   ],
+   [
+    0.0,
+    1.154701,
+    0.5
+   ],
+   [
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "width": 1024,
+  "height": 768,
+  "elevation_deg": 40.0,
+  "azimuth_deg": 0.0,
+  "fov_x_deg": 60.0,
+  "distance_m": 16.195185055867725,
+  "target": [
+   2.7762,
+   2.6494,
+   -0.3651
+  ],
+  "horizontal_px_score": 5820
+ },
+ "images": {
+  "points": "frl_apartment_1/points.jpg",
+  "s1_gt_geom": "frl_apartment_1/s1_gt_geom.jpg",
+  "s1_gt_color": "frl_apartment_1/s1_gt_color.jpg",
+  "s1_ts_est": "frl_apartment_1/s1_ts_est.jpg",
+  "s1_ts_sensor": "frl_apartment_1/s1_ts_sensor.jpg",
+  "s1_genrecon": "frl_apartment_1/s1_genrecon.jpg",
+  "s1_da3": "frl_apartment_1/s1_da3.jpg",
+  "s1_vggt": "frl_apartment_1/s1_vggt.jpg",
+  "s1_lingbot": "frl_apartment_1/s1_lingbot.jpg",
+  "s1_finerecon": "frl_apartment_1/s1_finerecon.jpg",
+  "s1_murre": "frl_apartment_1/s1_murre.jpg",
+  "s2_ts_est": [
+   "frl_apartment_1/s2_ts_est_0.jpg",
+   "frl_apartment_1/s2_ts_est_1.jpg",
+   "frl_apartment_1/s2_ts_est_2.jpg",
+   "frl_apartment_1/s2_ts_est_3.jpg"
+  ],
+  "s2_ts_sensor": [
+   "frl_apartment_1/s2_ts_sensor_0.jpg",
+   "frl_apartment_1/s2_ts_sensor_1.jpg",
+   "frl_apartment_1/s2_ts_sensor_2.jpg",
+   "frl_apartment_1/s2_ts_sensor_3.jpg"
+  ],
+  "s2_genrecon": [
+   "frl_apartment_1/s2_genrecon_0.jpg",
+   "frl_apartment_1/s2_genrecon_1.jpg",
+   "frl_apartment_1/s2_genrecon_2.jpg",
+   "frl_apartment_1/s2_genrecon_3.jpg"
+  ],
+  "s2_da3": [
+   "frl_apartment_1/s2_da3_0.jpg",
+   "frl_apartment_1/s2_da3_1.jpg",
+   "frl_apartment_1/s2_da3_2.jpg",
+   "frl_apartment_1/s2_da3_3.jpg"
+  ],
+  "s2_vggt": [
+   "frl_apartment_1/s2_vggt_0.jpg",
+   "frl_apartment_1/s2_vggt_1.jpg",
+   "frl_apartment_1/s2_vggt_2.jpg",
+   "frl_apartment_1/s2_vggt_3.jpg"
+  ],
+  "s2_lingbot": [
+   "frl_apartment_1/s2_lingbot_0.jpg",
+   "frl_apartment_1/s2_lingbot_1.jpg",
+   "frl_apartment_1/s2_lingbot_2.jpg",
+   "frl_apartment_1/s2_lingbot_3.jpg"
+  ],
+  "s2_finerecon": [
+   "frl_apartment_1/s2_finerecon_0.jpg",
+   "frl_apartment_1/s2_finerecon_1.jpg",
+   "frl_apartment_1/s2_finerecon_2.jpg",
+   "frl_apartment_1/s2_finerecon_3.jpg"
+  ],
+  "s2_murre": [
+   "frl_apartment_1/s2_murre_0.jpg",
+   "frl_apartment_1/s2_murre_1.jpg",
+   "frl_apartment_1/s2_murre_2.jpg",
+   "frl_apartment_1/s2_murre_3.jpg"
+  ],
+  "s2_gt": [
+   "frl_apartment_1/s2_gt_0.jpg",
+   "frl_apartment_1/s2_gt_1.jpg",
+   "frl_apartment_1/s2_gt_2.jpg",
+   "frl_apartment_1/s2_gt_3.jpg"
+  ]
+ },
+ "seconds": 88.9
+}

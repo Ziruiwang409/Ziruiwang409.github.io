@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complete3D — Replica, 32-view reconstruction, qualitative</title>
+<style>
+  :root { --fg:#1c1c1c; --muted:#666; --line:#e3e3e3; --accent:#2456c4; --bg:#ffffff; --card:#f7f7f8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); }
+  .wrap { max-width:1400px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+  h1 { font-size:1.7rem; margin:.2rem 0 .3rem; }
+  h2 { font-size:1.25rem; margin:2.4rem 0 .6rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; }
+  h3 { font-size:1.02rem; margin:1.6rem 0 .5rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .sub { color:var(--muted); font-size:.95rem; margin-bottom:.6rem; line-height:1.45; }
+  .note { color:var(--muted); font-size:.85rem; margin:.4rem 0 0; line-height:1.45; }
+  .find { background:var(--card); border-left:3px solid var(--accent); padding:.7rem .9rem; font-size:.92rem; line-height:1.45; margin:.8rem 0 1rem; }
+  .toc { display:flex; flex-wrap:wrap; gap:.4rem .9rem; font-size:.85rem; margin:.4rem 0 1rem; }
+  a { color:var(--accent); }
+  img { width:100%; display:block; background:#eee; }
+  .lbl { font-size:.74rem; color:var(--muted); text-align:center; padding:.22rem .2rem .5rem; line-height:1.25; }
+  .lbl b { color:var(--fg); font-weight:600; }
+  /* section 1 */
+  .s1 { display:grid; grid-template-columns: 1.6fr 1fr; gap:.8rem; align-items:start; }
+  .inputs { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; }
+  .inputs img { aspect-ratio:4/3; object-fit:cover; }
+  .grid5 { display:grid; grid-template-columns:repeat(5,1fr); gap:.6rem; margin-top:.6rem; }
+  .grid5 img { aspect-ratio:4/3; object-fit:cover; border:1px solid var(--line); }
+  .ours img { border:2px solid var(--accent); }
+  /* section 2 */
+  .s2 { display:grid; grid-template-columns: 150px repeat(4,1fr); gap:4px; align-items:center; }
+  .s2 .rl { font-size:.8rem; color:var(--muted); padding-right:.5rem; line-height:1.3; }
+  .s2 .rl b { color:var(--fg); font-weight:600; }
+  .s2 img { aspect-ratio:1/1; object-fit:cover; border:1px solid var(--line); }
+  .s2 .gt img { border-color:#999; }
+  .s2 .ours img { border:2px solid var(--accent); }
+  .s2top { display:grid; grid-template-columns: 1.6fr 1fr; gap:.8rem; margin-bottom:.6rem; }
+  @media (max-width: 800px) { .s1, .s2top { grid-template-columns:1fr; } .grid5 { grid-template-columns:repeat(2,1fr); } .s2 { grid-template-columns: 90px repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Complete3D — Replica, reconstruction from 32 views: qualitative results</h1>
+<p class="sub">All 16 paired scenes of Table 1 (Replica, 32 input views). Methods: <b>Complete3D-TS</b> (estimated depth = VGGT points; sensor depth = scan points), GenRecon, DA3 + TSDF, VGGT-Ω + TSDF, LingBot-Map + TSDF, FineRecon, Murre + TSDF. Per scene, 6 of the 32 input views and 4 held-out views are drawn once with a fixed seed and reused for every method.</p>
+<div class="find">
+<b>Section 1</b> shows each method's full output mesh from one shared camera per scene (40° elevation, whole room in frame, ceiling and upper walls cut at the median input-camera height for every mesh and the point cloud). Colour where the method produces it; FineRecon and the GT-geometry still are grey. <b>Section 2</b> renders each mesh at the 4 held-out camera poses the Replica 2D protocol scores, next to the ground-truth renders at the same poses. Black patches on some TSDF meshes are those methods' own missing vertex colours, rendered as is; the GT held-out images are the protocol's habitat renders and are darker than the unlit mesh colours.
+</div>
+<p class="note">Rendered 2026-10-25 by [eval] (<code>scripts/render_replica32_qual.py</code>); cameras, seeds and view ids per scene in <code>scenes/manifest.json</code> and <code>scenes/&lt;scene&gt;/scene.json</code>. Click any image for full size.</p>
+<div class="toc"><b>Scenes:</b>
+<a href="#s1-room_0">room_0</a>
+<a href="#s1-room_1">room_1</a>
+<a href="#s1-room_2">room_2</a>
+<a href="#s1-office_0">office_0</a>
+<a href="#s1-office_1">office_1</a>
+<a href="#s1-office_2">office_2</a>
+<a href="#s1-office_3">office_3</a>
+<a href="#s1-office_4">office_4</a>
+<a href="#s1-hotel_0">hotel_0</a>
+<a href="#s1-apartment_1">apartment_1</a>
+<a href="#s1-frl_apartment_0">frl_apartment_0</a>
+<a href="#s1-frl_apartment_1">frl_apartment_1</a>
+<a href="#s1-frl_apartment_2">frl_apartment_2</a>
+<a href="#s1-frl_apartment_3">frl_apartment_3</a>
+<a href="#s1-frl_apartment_4">frl_apartment_4</a>
+<a href="#s1-frl_apartment_5">frl_apartment_5</a>
+</div>
+<h2 id="sec1">Section 1 — 3D reconstruction (shared camera per scene)</h2>
+<h3 id="s1-room_0">room_0</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/room_0/inputs/view_0.jpg"><img src="scenes/room_0/inputs/view_0.jpg" alt="room_0 input view 0" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_1.jpg"><img src="scenes/room_0/inputs/view_1.jpg" alt="room_0 input view 1" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_2.jpg"><img src="scenes/room_0/inputs/view_2.jpg" alt="room_0 input view 2" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_3.jpg"><img src="scenes/room_0/inputs/view_3.jpg" alt="room_0 input view 3" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_4.jpg"><img src="scenes/room_0/inputs/view_4.jpg" alt="room_0 input view 4" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_5.jpg"><img src="scenes/room_0/inputs/view_5.jpg" alt="room_0 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/room_0/points.jpg"><img src="scenes/room_0/points.jpg" alt="room_0 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/room_0/s1_ts_est.jpg"><img src="scenes/room_0/s1_ts_est.jpg" alt="room_0 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/room_0/s1_ts_sensor.jpg"><img src="scenes/room_0/s1_ts_sensor.jpg" alt="room_0 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/room_0/s1_genrecon.jpg"><img src="scenes/room_0/s1_genrecon.jpg" alt="room_0 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/room_0/s1_da3.jpg"><img src="scenes/room_0/s1_da3.jpg" alt="room_0 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/room_0/s1_vggt.jpg"><img src="scenes/room_0/s1_vggt.jpg" alt="room_0 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/room_0/s1_lingbot.jpg"><img src="scenes/room_0/s1_lingbot.jpg" alt="room_0 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/room_0/s1_finerecon.jpg"><img src="scenes/room_0/s1_finerecon.jpg" alt="room_0 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/room_0/s1_murre.jpg"><img src="scenes/room_0/s1_murre.jpg" alt="room_0 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/room_0/s1_gt_geom.jpg"><img src="scenes/room_0/s1_gt_geom.jpg" alt="room_0 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/room_0/s1_gt_color.jpg"><img src="scenes/room_0/s1_gt_color.jpg" alt="room_0 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-room_1">room_1</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/room_1/inputs/view_0.jpg"><img src="scenes/room_1/inputs/view_0.jpg" alt="room_1 input view 0" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_1.jpg"><img src="scenes/room_1/inputs/view_1.jpg" alt="room_1 input view 1" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_2.jpg"><img src="scenes/room_1/inputs/view_2.jpg" alt="room_1 input view 2" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_3.jpg"><img src="scenes/room_1/inputs/view_3.jpg" alt="room_1 input view 3" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_4.jpg"><img src="scenes/room_1/inputs/view_4.jpg" alt="room_1 input view 4" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_5.jpg"><img src="scenes/room_1/inputs/view_5.jpg" alt="room_1 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/room_1/points.jpg"><img src="scenes/room_1/points.jpg" alt="room_1 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/room_1/s1_ts_est.jpg"><img src="scenes/room_1/s1_ts_est.jpg" alt="room_1 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/room_1/s1_ts_sensor.jpg"><img src="scenes/room_1/s1_ts_sensor.jpg" alt="room_1 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/room_1/s1_genrecon.jpg"><img src="scenes/room_1/s1_genrecon.jpg" alt="room_1 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/room_1/s1_da3.jpg"><img src="scenes/room_1/s1_da3.jpg" alt="room_1 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/room_1/s1_vggt.jpg"><img src="scenes/room_1/s1_vggt.jpg" alt="room_1 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/room_1/s1_lingbot.jpg"><img src="scenes/room_1/s1_lingbot.jpg" alt="room_1 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/room_1/s1_finerecon.jpg"><img src="scenes/room_1/s1_finerecon.jpg" alt="room_1 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/room_1/s1_murre.jpg"><img src="scenes/room_1/s1_murre.jpg" alt="room_1 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/room_1/s1_gt_geom.jpg"><img src="scenes/room_1/s1_gt_geom.jpg" alt="room_1 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/room_1/s1_gt_color.jpg"><img src="scenes/room_1/s1_gt_color.jpg" alt="room_1 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-room_2">room_2</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/room_2/inputs/view_0.jpg"><img src="scenes/room_2/inputs/view_0.jpg" alt="room_2 input view 0" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_1.jpg"><img src="scenes/room_2/inputs/view_1.jpg" alt="room_2 input view 1" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_2.jpg"><img src="scenes/room_2/inputs/view_2.jpg" alt="room_2 input view 2" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_3.jpg"><img src="scenes/room_2/inputs/view_3.jpg" alt="room_2 input view 3" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_4.jpg"><img src="scenes/room_2/inputs/view_4.jpg" alt="room_2 input view 4" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_5.jpg"><img src="scenes/room_2/inputs/view_5.jpg" alt="room_2 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/room_2/points.jpg"><img src="scenes/room_2/points.jpg" alt="room_2 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/room_2/s1_ts_est.jpg"><img src="scenes/room_2/s1_ts_est.jpg" alt="room_2 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/room_2/s1_ts_sensor.jpg"><img src="scenes/room_2/s1_ts_sensor.jpg" alt="room_2 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/room_2/s1_genrecon.jpg"><img src="scenes/room_2/s1_genrecon.jpg" alt="room_2 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/room_2/s1_da3.jpg"><img src="scenes/room_2/s1_da3.jpg" alt="room_2 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/room_2/s1_vggt.jpg"><img src="scenes/room_2/s1_vggt.jpg" alt="room_2 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/room_2/s1_lingbot.jpg"><img src="scenes/room_2/s1_lingbot.jpg" alt="room_2 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/room_2/s1_finerecon.jpg"><img src="scenes/room_2/s1_finerecon.jpg" alt="room_2 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/room_2/s1_murre.jpg"><img src="scenes/room_2/s1_murre.jpg" alt="room_2 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/room_2/s1_gt_geom.jpg"><img src="scenes/room_2/s1_gt_geom.jpg" alt="room_2 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/room_2/s1_gt_color.jpg"><img src="scenes/room_2/s1_gt_color.jpg" alt="room_2 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-office_0">office_0</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/office_0/inputs/view_0.jpg"><img src="scenes/office_0/inputs/view_0.jpg" alt="office_0 input view 0" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_1.jpg"><img src="scenes/office_0/inputs/view_1.jpg" alt="office_0 input view 1" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_2.jpg"><img src="scenes/office_0/inputs/view_2.jpg" alt="office_0 input view 2" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_3.jpg"><img src="scenes/office_0/inputs/view_3.jpg" alt="office_0 input view 3" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_4.jpg"><img src="scenes/office_0/inputs/view_4.jpg" alt="office_0 input view 4" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_5.jpg"><img src="scenes/office_0/inputs/view_5.jpg" alt="office_0 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/office_0/points.jpg"><img src="scenes/office_0/points.jpg" alt="office_0 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/office_0/s1_ts_est.jpg"><img src="scenes/office_0/s1_ts_est.jpg" alt="office_0 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/office_0/s1_ts_sensor.jpg"><img src="scenes/office_0/s1_ts_sensor.jpg" alt="office_0 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/office_0/s1_genrecon.jpg"><img src="scenes/office_0/s1_genrecon.jpg" alt="office_0 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/office_0/s1_da3.jpg"><img src="scenes/office_0/s1_da3.jpg" alt="office_0 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/office_0/s1_vggt.jpg"><img src="scenes/office_0/s1_vggt.jpg" alt="office_0 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/office_0/s1_lingbot.jpg"><img src="scenes/office_0/s1_lingbot.jpg" alt="office_0 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/office_0/s1_finerecon.jpg"><img src="scenes/office_0/s1_finerecon.jpg" alt="office_0 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/office_0/s1_murre.jpg"><img src="scenes/office_0/s1_murre.jpg" alt="office_0 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/office_0/s1_gt_geom.jpg"><img src="scenes/office_0/s1_gt_geom.jpg" alt="office_0 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/office_0/s1_gt_color.jpg"><img src="scenes/office_0/s1_gt_color.jpg" alt="office_0 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-office_1">office_1</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/office_1/inputs/view_0.jpg"><img src="scenes/office_1/inputs/view_0.jpg" alt="office_1 input view 0" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_1.jpg"><img src="scenes/office_1/inputs/view_1.jpg" alt="office_1 input view 1" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_2.jpg"><img src="scenes/office_1/inputs/view_2.jpg" alt="office_1 input view 2" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_3.jpg"><img src="scenes/office_1/inputs/view_3.jpg" alt="office_1 input view 3" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_4.jpg"><img src="scenes/office_1/inputs/view_4.jpg" alt="office_1 input view 4" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_5.jpg"><img src="scenes/office_1/inputs/view_5.jpg" alt="office_1 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/office_1/points.jpg"><img src="scenes/office_1/points.jpg" alt="office_1 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/office_1/s1_ts_est.jpg"><img src="scenes/office_1/s1_ts_est.jpg" alt="office_1 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/office_1/s1_ts_sensor.jpg"><img src="scenes/office_1/s1_ts_sensor.jpg" alt="office_1 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/office_1/s1_genrecon.jpg"><img src="scenes/office_1/s1_genrecon.jpg" alt="office_1 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/office_1/s1_da3.jpg"><img src="scenes/office_1/s1_da3.jpg" alt="office_1 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/office_1/s1_vggt.jpg"><img src="scenes/office_1/s1_vggt.jpg" alt="office_1 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/office_1/s1_lingbot.jpg"><img src="scenes/office_1/s1_lingbot.jpg" alt="office_1 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/office_1/s1_finerecon.jpg"><img src="scenes/office_1/s1_finerecon.jpg" alt="office_1 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/office_1/s1_murre.jpg"><img src="scenes/office_1/s1_murre.jpg" alt="office_1 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/office_1/s1_gt_geom.jpg"><img src="scenes/office_1/s1_gt_geom.jpg" alt="office_1 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/office_1/s1_gt_color.jpg"><img src="scenes/office_1/s1_gt_color.jpg" alt="office_1 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-office_2">office_2</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/office_2/inputs/view_0.jpg"><img src="scenes/office_2/inputs/view_0.jpg" alt="office_2 input view 0" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_1.jpg"><img src="scenes/office_2/inputs/view_1.jpg" alt="office_2 input view 1" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_2.jpg"><img src="scenes/office_2/inputs/view_2.jpg" alt="office_2 input view 2" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_3.jpg"><img src="scenes/office_2/inputs/view_3.jpg" alt="office_2 input view 3" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_4.jpg"><img src="scenes/office_2/inputs/view_4.jpg" alt="office_2 input view 4" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_5.jpg"><img src="scenes/office_2/inputs/view_5.jpg" alt="office_2 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/office_2/points.jpg"><img src="scenes/office_2/points.jpg" alt="office_2 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/office_2/s1_ts_est.jpg"><img src="scenes/office_2/s1_ts_est.jpg" alt="office_2 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/office_2/s1_ts_sensor.jpg"><img src="scenes/office_2/s1_ts_sensor.jpg" alt="office_2 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/office_2/s1_genrecon.jpg"><img src="scenes/office_2/s1_genrecon.jpg" alt="office_2 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/office_2/s1_da3.jpg"><img src="scenes/office_2/s1_da3.jpg" alt="office_2 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/office_2/s1_vggt.jpg"><img src="scenes/office_2/s1_vggt.jpg" alt="office_2 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/office_2/s1_lingbot.jpg"><img src="scenes/office_2/s1_lingbot.jpg" alt="office_2 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/office_2/s1_finerecon.jpg"><img src="scenes/office_2/s1_finerecon.jpg" alt="office_2 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/office_2/s1_murre.jpg"><img src="scenes/office_2/s1_murre.jpg" alt="office_2 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/office_2/s1_gt_geom.jpg"><img src="scenes/office_2/s1_gt_geom.jpg" alt="office_2 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/office_2/s1_gt_color.jpg"><img src="scenes/office_2/s1_gt_color.jpg" alt="office_2 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-office_3">office_3</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/office_3/inputs/view_0.jpg"><img src="scenes/office_3/inputs/view_0.jpg" alt="office_3 input view 0" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_1.jpg"><img src="scenes/office_3/inputs/view_1.jpg" alt="office_3 input view 1" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_2.jpg"><img src="scenes/office_3/inputs/view_2.jpg" alt="office_3 input view 2" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_3.jpg"><img src="scenes/office_3/inputs/view_3.jpg" alt="office_3 input view 3" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_4.jpg"><img src="scenes/office_3/inputs/view_4.jpg" alt="office_3 input view 4" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_5.jpg"><img src="scenes/office_3/inputs/view_5.jpg" alt="office_3 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/office_3/points.jpg"><img src="scenes/office_3/points.jpg" alt="office_3 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/office_3/s1_ts_est.jpg"><img src="scenes/office_3/s1_ts_est.jpg" alt="office_3 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/office_3/s1_ts_sensor.jpg"><img src="scenes/office_3/s1_ts_sensor.jpg" alt="office_3 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/office_3/s1_genrecon.jpg"><img src="scenes/office_3/s1_genrecon.jpg" alt="office_3 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/office_3/s1_da3.jpg"><img src="scenes/office_3/s1_da3.jpg" alt="office_3 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/office_3/s1_vggt.jpg"><img src="scenes/office_3/s1_vggt.jpg" alt="office_3 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/office_3/s1_lingbot.jpg"><img src="scenes/office_3/s1_lingbot.jpg" alt="office_3 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/office_3/s1_finerecon.jpg"><img src="scenes/office_3/s1_finerecon.jpg" alt="office_3 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/office_3/s1_murre.jpg"><img src="scenes/office_3/s1_murre.jpg" alt="office_3 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/office_3/s1_gt_geom.jpg"><img src="scenes/office_3/s1_gt_geom.jpg" alt="office_3 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/office_3/s1_gt_color.jpg"><img src="scenes/office_3/s1_gt_color.jpg" alt="office_3 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-office_4">office_4</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/office_4/inputs/view_0.jpg"><img src="scenes/office_4/inputs/view_0.jpg" alt="office_4 input view 0" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_1.jpg"><img src="scenes/office_4/inputs/view_1.jpg" alt="office_4 input view 1" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_2.jpg"><img src="scenes/office_4/inputs/view_2.jpg" alt="office_4 input view 2" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_3.jpg"><img src="scenes/office_4/inputs/view_3.jpg" alt="office_4 input view 3" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_4.jpg"><img src="scenes/office_4/inputs/view_4.jpg" alt="office_4 input view 4" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_5.jpg"><img src="scenes/office_4/inputs/view_5.jpg" alt="office_4 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/office_4/points.jpg"><img src="scenes/office_4/points.jpg" alt="office_4 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/office_4/s1_ts_est.jpg"><img src="scenes/office_4/s1_ts_est.jpg" alt="office_4 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/office_4/s1_ts_sensor.jpg"><img src="scenes/office_4/s1_ts_sensor.jpg" alt="office_4 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/office_4/s1_genrecon.jpg"><img src="scenes/office_4/s1_genrecon.jpg" alt="office_4 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/office_4/s1_da3.jpg"><img src="scenes/office_4/s1_da3.jpg" alt="office_4 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/office_4/s1_vggt.jpg"><img src="scenes/office_4/s1_vggt.jpg" alt="office_4 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/office_4/s1_lingbot.jpg"><img src="scenes/office_4/s1_lingbot.jpg" alt="office_4 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/office_4/s1_finerecon.jpg"><img src="scenes/office_4/s1_finerecon.jpg" alt="office_4 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/office_4/s1_murre.jpg"><img src="scenes/office_4/s1_murre.jpg" alt="office_4 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/office_4/s1_gt_geom.jpg"><img src="scenes/office_4/s1_gt_geom.jpg" alt="office_4 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/office_4/s1_gt_color.jpg"><img src="scenes/office_4/s1_gt_color.jpg" alt="office_4 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-hotel_0">hotel_0</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/hotel_0/inputs/view_0.jpg"><img src="scenes/hotel_0/inputs/view_0.jpg" alt="hotel_0 input view 0" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_1.jpg"><img src="scenes/hotel_0/inputs/view_1.jpg" alt="hotel_0 input view 1" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_2.jpg"><img src="scenes/hotel_0/inputs/view_2.jpg" alt="hotel_0 input view 2" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_3.jpg"><img src="scenes/hotel_0/inputs/view_3.jpg" alt="hotel_0 input view 3" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_4.jpg"><img src="scenes/hotel_0/inputs/view_4.jpg" alt="hotel_0 input view 4" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_5.jpg"><img src="scenes/hotel_0/inputs/view_5.jpg" alt="hotel_0 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/hotel_0/points.jpg"><img src="scenes/hotel_0/points.jpg" alt="hotel_0 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/hotel_0/s1_ts_est.jpg"><img src="scenes/hotel_0/s1_ts_est.jpg" alt="hotel_0 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/hotel_0/s1_ts_sensor.jpg"><img src="scenes/hotel_0/s1_ts_sensor.jpg" alt="hotel_0 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/hotel_0/s1_genrecon.jpg"><img src="scenes/hotel_0/s1_genrecon.jpg" alt="hotel_0 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/hotel_0/s1_da3.jpg"><img src="scenes/hotel_0/s1_da3.jpg" alt="hotel_0 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/hotel_0/s1_vggt.jpg"><img src="scenes/hotel_0/s1_vggt.jpg" alt="hotel_0 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/hotel_0/s1_lingbot.jpg"><img src="scenes/hotel_0/s1_lingbot.jpg" alt="hotel_0 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/hotel_0/s1_finerecon.jpg"><img src="scenes/hotel_0/s1_finerecon.jpg" alt="hotel_0 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/hotel_0/s1_murre.jpg"><img src="scenes/hotel_0/s1_murre.jpg" alt="hotel_0 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/hotel_0/s1_gt_geom.jpg"><img src="scenes/hotel_0/s1_gt_geom.jpg" alt="hotel_0 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/hotel_0/s1_gt_color.jpg"><img src="scenes/hotel_0/s1_gt_color.jpg" alt="hotel_0 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-apartment_1">apartment_1</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/apartment_1/inputs/view_0.jpg"><img src="scenes/apartment_1/inputs/view_0.jpg" alt="apartment_1 input view 0" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_1.jpg"><img src="scenes/apartment_1/inputs/view_1.jpg" alt="apartment_1 input view 1" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_2.jpg"><img src="scenes/apartment_1/inputs/view_2.jpg" alt="apartment_1 input view 2" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_3.jpg"><img src="scenes/apartment_1/inputs/view_3.jpg" alt="apartment_1 input view 3" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_4.jpg"><img src="scenes/apartment_1/inputs/view_4.jpg" alt="apartment_1 input view 4" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_5.jpg"><img src="scenes/apartment_1/inputs/view_5.jpg" alt="apartment_1 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/apartment_1/points.jpg"><img src="scenes/apartment_1/points.jpg" alt="apartment_1 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/apartment_1/s1_ts_est.jpg"><img src="scenes/apartment_1/s1_ts_est.jpg" alt="apartment_1 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/apartment_1/s1_ts_sensor.jpg"><img src="scenes/apartment_1/s1_ts_sensor.jpg" alt="apartment_1 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/apartment_1/s1_genrecon.jpg"><img src="scenes/apartment_1/s1_genrecon.jpg" alt="apartment_1 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/apartment_1/s1_da3.jpg"><img src="scenes/apartment_1/s1_da3.jpg" alt="apartment_1 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/apartment_1/s1_vggt.jpg"><img src="scenes/apartment_1/s1_vggt.jpg" alt="apartment_1 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/apartment_1/s1_lingbot.jpg"><img src="scenes/apartment_1/s1_lingbot.jpg" alt="apartment_1 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/apartment_1/s1_finerecon.jpg"><img src="scenes/apartment_1/s1_finerecon.jpg" alt="apartment_1 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/apartment_1/s1_murre.jpg"><img src="scenes/apartment_1/s1_murre.jpg" alt="apartment_1 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/apartment_1/s1_gt_geom.jpg"><img src="scenes/apartment_1/s1_gt_geom.jpg" alt="apartment_1 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/apartment_1/s1_gt_color.jpg"><img src="scenes/apartment_1/s1_gt_color.jpg" alt="apartment_1 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-frl_apartment_0">frl_apartment_0</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/frl_apartment_0/inputs/view_0.jpg"><img src="scenes/frl_apartment_0/inputs/view_0.jpg" alt="frl_apartment_0 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_1.jpg"><img src="scenes/frl_apartment_0/inputs/view_1.jpg" alt="frl_apartment_0 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_2.jpg"><img src="scenes/frl_apartment_0/inputs/view_2.jpg" alt="frl_apartment_0 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_3.jpg"><img src="scenes/frl_apartment_0/inputs/view_3.jpg" alt="frl_apartment_0 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_4.jpg"><img src="scenes/frl_apartment_0/inputs/view_4.jpg" alt="frl_apartment_0 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_5.jpg"><img src="scenes/frl_apartment_0/inputs/view_5.jpg" alt="frl_apartment_0 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/frl_apartment_0/points.jpg"><img src="scenes/frl_apartment_0/points.jpg" alt="frl_apartment_0 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/frl_apartment_0/s1_ts_est.jpg"><img src="scenes/frl_apartment_0/s1_ts_est.jpg" alt="frl_apartment_0 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/frl_apartment_0/s1_ts_sensor.jpg"><img src="scenes/frl_apartment_0/s1_ts_sensor.jpg" alt="frl_apartment_0 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/frl_apartment_0/s1_genrecon.jpg"><img src="scenes/frl_apartment_0/s1_genrecon.jpg" alt="frl_apartment_0 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/frl_apartment_0/s1_da3.jpg"><img src="scenes/frl_apartment_0/s1_da3.jpg" alt="frl_apartment_0 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_0/s1_vggt.jpg"><img src="scenes/frl_apartment_0/s1_vggt.jpg" alt="frl_apartment_0 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_0/s1_lingbot.jpg"><img src="scenes/frl_apartment_0/s1_lingbot.jpg" alt="frl_apartment_0 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_0/s1_finerecon.jpg"><img src="scenes/frl_apartment_0/s1_finerecon.jpg" alt="frl_apartment_0 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/frl_apartment_0/s1_murre.jpg"><img src="scenes/frl_apartment_0/s1_murre.jpg" alt="frl_apartment_0 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_0/s1_gt_geom.jpg"><img src="scenes/frl_apartment_0/s1_gt_geom.jpg" alt="frl_apartment_0 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/frl_apartment_0/s1_gt_color.jpg"><img src="scenes/frl_apartment_0/s1_gt_color.jpg" alt="frl_apartment_0 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-frl_apartment_1">frl_apartment_1</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/frl_apartment_1/inputs/view_0.jpg"><img src="scenes/frl_apartment_1/inputs/view_0.jpg" alt="frl_apartment_1 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_1.jpg"><img src="scenes/frl_apartment_1/inputs/view_1.jpg" alt="frl_apartment_1 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_2.jpg"><img src="scenes/frl_apartment_1/inputs/view_2.jpg" alt="frl_apartment_1 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_3.jpg"><img src="scenes/frl_apartment_1/inputs/view_3.jpg" alt="frl_apartment_1 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_4.jpg"><img src="scenes/frl_apartment_1/inputs/view_4.jpg" alt="frl_apartment_1 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_5.jpg"><img src="scenes/frl_apartment_1/inputs/view_5.jpg" alt="frl_apartment_1 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/frl_apartment_1/points.jpg"><img src="scenes/frl_apartment_1/points.jpg" alt="frl_apartment_1 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/frl_apartment_1/s1_ts_est.jpg"><img src="scenes/frl_apartment_1/s1_ts_est.jpg" alt="frl_apartment_1 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/frl_apartment_1/s1_ts_sensor.jpg"><img src="scenes/frl_apartment_1/s1_ts_sensor.jpg" alt="frl_apartment_1 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/frl_apartment_1/s1_genrecon.jpg"><img src="scenes/frl_apartment_1/s1_genrecon.jpg" alt="frl_apartment_1 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/frl_apartment_1/s1_da3.jpg"><img src="scenes/frl_apartment_1/s1_da3.jpg" alt="frl_apartment_1 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_1/s1_vggt.jpg"><img src="scenes/frl_apartment_1/s1_vggt.jpg" alt="frl_apartment_1 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_1/s1_lingbot.jpg"><img src="scenes/frl_apartment_1/s1_lingbot.jpg" alt="frl_apartment_1 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_1/s1_finerecon.jpg"><img src="scenes/frl_apartment_1/s1_finerecon.jpg" alt="frl_apartment_1 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/frl_apartment_1/s1_murre.jpg"><img src="scenes/frl_apartment_1/s1_murre.jpg" alt="frl_apartment_1 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_1/s1_gt_geom.jpg"><img src="scenes/frl_apartment_1/s1_gt_geom.jpg" alt="frl_apartment_1 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/frl_apartment_1/s1_gt_color.jpg"><img src="scenes/frl_apartment_1/s1_gt_color.jpg" alt="frl_apartment_1 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-frl_apartment_2">frl_apartment_2</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/frl_apartment_2/inputs/view_0.jpg"><img src="scenes/frl_apartment_2/inputs/view_0.jpg" alt="frl_apartment_2 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_1.jpg"><img src="scenes/frl_apartment_2/inputs/view_1.jpg" alt="frl_apartment_2 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_2.jpg"><img src="scenes/frl_apartment_2/inputs/view_2.jpg" alt="frl_apartment_2 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_3.jpg"><img src="scenes/frl_apartment_2/inputs/view_3.jpg" alt="frl_apartment_2 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_4.jpg"><img src="scenes/frl_apartment_2/inputs/view_4.jpg" alt="frl_apartment_2 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_5.jpg"><img src="scenes/frl_apartment_2/inputs/view_5.jpg" alt="frl_apartment_2 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/frl_apartment_2/points.jpg"><img src="scenes/frl_apartment_2/points.jpg" alt="frl_apartment_2 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/frl_apartment_2/s1_ts_est.jpg"><img src="scenes/frl_apartment_2/s1_ts_est.jpg" alt="frl_apartment_2 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/frl_apartment_2/s1_ts_sensor.jpg"><img src="scenes/frl_apartment_2/s1_ts_sensor.jpg" alt="frl_apartment_2 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/frl_apartment_2/s1_genrecon.jpg"><img src="scenes/frl_apartment_2/s1_genrecon.jpg" alt="frl_apartment_2 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/frl_apartment_2/s1_da3.jpg"><img src="scenes/frl_apartment_2/s1_da3.jpg" alt="frl_apartment_2 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_2/s1_vggt.jpg"><img src="scenes/frl_apartment_2/s1_vggt.jpg" alt="frl_apartment_2 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_2/s1_lingbot.jpg"><img src="scenes/frl_apartment_2/s1_lingbot.jpg" alt="frl_apartment_2 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_2/s1_finerecon.jpg"><img src="scenes/frl_apartment_2/s1_finerecon.jpg" alt="frl_apartment_2 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/frl_apartment_2/s1_murre.jpg"><img src="scenes/frl_apartment_2/s1_murre.jpg" alt="frl_apartment_2 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_2/s1_gt_geom.jpg"><img src="scenes/frl_apartment_2/s1_gt_geom.jpg" alt="frl_apartment_2 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/frl_apartment_2/s1_gt_color.jpg"><img src="scenes/frl_apartment_2/s1_gt_color.jpg" alt="frl_apartment_2 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-frl_apartment_3">frl_apartment_3</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/frl_apartment_3/inputs/view_0.jpg"><img src="scenes/frl_apartment_3/inputs/view_0.jpg" alt="frl_apartment_3 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_1.jpg"><img src="scenes/frl_apartment_3/inputs/view_1.jpg" alt="frl_apartment_3 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_2.jpg"><img src="scenes/frl_apartment_3/inputs/view_2.jpg" alt="frl_apartment_3 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_3.jpg"><img src="scenes/frl_apartment_3/inputs/view_3.jpg" alt="frl_apartment_3 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_4.jpg"><img src="scenes/frl_apartment_3/inputs/view_4.jpg" alt="frl_apartment_3 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_5.jpg"><img src="scenes/frl_apartment_3/inputs/view_5.jpg" alt="frl_apartment_3 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/frl_apartment_3/points.jpg"><img src="scenes/frl_apartment_3/points.jpg" alt="frl_apartment_3 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/frl_apartment_3/s1_ts_est.jpg"><img src="scenes/frl_apartment_3/s1_ts_est.jpg" alt="frl_apartment_3 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/frl_apartment_3/s1_ts_sensor.jpg"><img src="scenes/frl_apartment_3/s1_ts_sensor.jpg" alt="frl_apartment_3 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/frl_apartment_3/s1_genrecon.jpg"><img src="scenes/frl_apartment_3/s1_genrecon.jpg" alt="frl_apartment_3 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/frl_apartment_3/s1_da3.jpg"><img src="scenes/frl_apartment_3/s1_da3.jpg" alt="frl_apartment_3 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_3/s1_vggt.jpg"><img src="scenes/frl_apartment_3/s1_vggt.jpg" alt="frl_apartment_3 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_3/s1_lingbot.jpg"><img src="scenes/frl_apartment_3/s1_lingbot.jpg" alt="frl_apartment_3 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_3/s1_finerecon.jpg"><img src="scenes/frl_apartment_3/s1_finerecon.jpg" alt="frl_apartment_3 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/frl_apartment_3/s1_murre.jpg"><img src="scenes/frl_apartment_3/s1_murre.jpg" alt="frl_apartment_3 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_3/s1_gt_geom.jpg"><img src="scenes/frl_apartment_3/s1_gt_geom.jpg" alt="frl_apartment_3 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/frl_apartment_3/s1_gt_color.jpg"><img src="scenes/frl_apartment_3/s1_gt_color.jpg" alt="frl_apartment_3 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-frl_apartment_4">frl_apartment_4</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/frl_apartment_4/inputs/view_0.jpg"><img src="scenes/frl_apartment_4/inputs/view_0.jpg" alt="frl_apartment_4 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_1.jpg"><img src="scenes/frl_apartment_4/inputs/view_1.jpg" alt="frl_apartment_4 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_2.jpg"><img src="scenes/frl_apartment_4/inputs/view_2.jpg" alt="frl_apartment_4 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_3.jpg"><img src="scenes/frl_apartment_4/inputs/view_3.jpg" alt="frl_apartment_4 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_4.jpg"><img src="scenes/frl_apartment_4/inputs/view_4.jpg" alt="frl_apartment_4 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_5.jpg"><img src="scenes/frl_apartment_4/inputs/view_5.jpg" alt="frl_apartment_4 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/frl_apartment_4/points.jpg"><img src="scenes/frl_apartment_4/points.jpg" alt="frl_apartment_4 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/frl_apartment_4/s1_ts_est.jpg"><img src="scenes/frl_apartment_4/s1_ts_est.jpg" alt="frl_apartment_4 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/frl_apartment_4/s1_ts_sensor.jpg"><img src="scenes/frl_apartment_4/s1_ts_sensor.jpg" alt="frl_apartment_4 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/frl_apartment_4/s1_genrecon.jpg"><img src="scenes/frl_apartment_4/s1_genrecon.jpg" alt="frl_apartment_4 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/frl_apartment_4/s1_da3.jpg"><img src="scenes/frl_apartment_4/s1_da3.jpg" alt="frl_apartment_4 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_4/s1_vggt.jpg"><img src="scenes/frl_apartment_4/s1_vggt.jpg" alt="frl_apartment_4 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_4/s1_lingbot.jpg"><img src="scenes/frl_apartment_4/s1_lingbot.jpg" alt="frl_apartment_4 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_4/s1_finerecon.jpg"><img src="scenes/frl_apartment_4/s1_finerecon.jpg" alt="frl_apartment_4 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/frl_apartment_4/s1_murre.jpg"><img src="scenes/frl_apartment_4/s1_murre.jpg" alt="frl_apartment_4 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_4/s1_gt_geom.jpg"><img src="scenes/frl_apartment_4/s1_gt_geom.jpg" alt="frl_apartment_4 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/frl_apartment_4/s1_gt_color.jpg"><img src="scenes/frl_apartment_4/s1_gt_color.jpg" alt="frl_apartment_4 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h3 id="s1-frl_apartment_5">frl_apartment_5</h3>
+<div class="s1"><div><div class="inputs">
+<a href="scenes/frl_apartment_5/inputs/view_0.jpg"><img src="scenes/frl_apartment_5/inputs/view_0.jpg" alt="frl_apartment_5 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_1.jpg"><img src="scenes/frl_apartment_5/inputs/view_1.jpg" alt="frl_apartment_5 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_2.jpg"><img src="scenes/frl_apartment_5/inputs/view_2.jpg" alt="frl_apartment_5 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_3.jpg"><img src="scenes/frl_apartment_5/inputs/view_3.jpg" alt="frl_apartment_5 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_4.jpg"><img src="scenes/frl_apartment_5/inputs/view_4.jpg" alt="frl_apartment_5 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_5.jpg"><img src="scenes/frl_apartment_5/inputs/view_5.jpg" alt="frl_apartment_5 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · 6 of 32</div></div>
+<div><a href="scenes/frl_apartment_5/points.jpg"><img src="scenes/frl_apartment_5/points.jpg" alt="frl_apartment_5 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b> · VGGT from the 32 views</div></div></div>
+<div class="grid5">
+<div class="ours"><a href="scenes/frl_apartment_5/s1_ts_est.jpg"><img src="scenes/frl_apartment_5/s1_ts_est.jpg" alt="frl_apartment_5 Complete3D-TS (estimated depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (estimated depth)</b></div></div>
+<div class="ours"><a href="scenes/frl_apartment_5/s1_ts_sensor.jpg"><img src="scenes/frl_apartment_5/s1_ts_sensor.jpg" alt="frl_apartment_5 Complete3D-TS (sensor depth)" loading="lazy"></a><div class="lbl"><b>Complete3D-TS (sensor depth)</b></div></div>
+<div><a href="scenes/frl_apartment_5/s1_genrecon.jpg"><img src="scenes/frl_apartment_5/s1_genrecon.jpg" alt="frl_apartment_5 GenRecon" loading="lazy"></a><div class="lbl"><b>GenRecon</b></div></div>
+<div><a href="scenes/frl_apartment_5/s1_da3.jpg"><img src="scenes/frl_apartment_5/s1_da3.jpg" alt="frl_apartment_5 DA3 + TSDF" loading="lazy"></a><div class="lbl"><b>DA3 + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_5/s1_vggt.jpg"><img src="scenes/frl_apartment_5/s1_vggt.jpg" alt="frl_apartment_5 VGGT-Ω + TSDF" loading="lazy"></a><div class="lbl"><b>VGGT-Ω + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_5/s1_lingbot.jpg"><img src="scenes/frl_apartment_5/s1_lingbot.jpg" alt="frl_apartment_5 LingBot-Map + TSDF" loading="lazy"></a><div class="lbl"><b>LingBot-Map + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_5/s1_finerecon.jpg"><img src="scenes/frl_apartment_5/s1_finerecon.jpg" alt="frl_apartment_5 FineRecon (centred 60°)" loading="lazy"></a><div class="lbl"><b>FineRecon (centred 60°)</b></div></div>
+<div><a href="scenes/frl_apartment_5/s1_murre.jpg"><img src="scenes/frl_apartment_5/s1_murre.jpg" alt="frl_apartment_5 Murre + TSDF" loading="lazy"></a><div class="lbl"><b>Murre + TSDF</b></div></div>
+<div><a href="scenes/frl_apartment_5/s1_gt_geom.jpg"><img src="scenes/frl_apartment_5/s1_gt_geom.jpg" alt="frl_apartment_5 GT geometry" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · geometry</div></div>
+<div><a href="scenes/frl_apartment_5/s1_gt_color.jpg"><img src="scenes/frl_apartment_5/s1_gt_color.jpg" alt="frl_apartment_5 GT colour" loading="lazy"></a><div class="lbl"><b>Ground truth</b> · colour</div></div>
+</div>
+<h2 id="sec2">Section 2 — 2D renderings at 4 held-out views</h2>
+<div class="toc"><b>Scenes:</b>
+<a href="#s2-room_0">room_0</a>
+<a href="#s2-room_1">room_1</a>
+<a href="#s2-room_2">room_2</a>
+<a href="#s2-office_0">office_0</a>
+<a href="#s2-office_1">office_1</a>
+<a href="#s2-office_2">office_2</a>
+<a href="#s2-office_3">office_3</a>
+<a href="#s2-office_4">office_4</a>
+<a href="#s2-hotel_0">hotel_0</a>
+<a href="#s2-apartment_1">apartment_1</a>
+<a href="#s2-frl_apartment_0">frl_apartment_0</a>
+<a href="#s2-frl_apartment_1">frl_apartment_1</a>
+<a href="#s2-frl_apartment_2">frl_apartment_2</a>
+<a href="#s2-frl_apartment_3">frl_apartment_3</a>
+<a href="#s2-frl_apartment_4">frl_apartment_4</a>
+<a href="#s2-frl_apartment_5">frl_apartment_5</a>
+</div>
+<h3 id="s2-room_0">room_0</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/room_0/inputs/view_0.jpg"><img src="scenes/room_0/inputs/view_0.jpg" alt="room_0 input view 0" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_1.jpg"><img src="scenes/room_0/inputs/view_1.jpg" alt="room_0 input view 1" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_2.jpg"><img src="scenes/room_0/inputs/view_2.jpg" alt="room_0 input view 2" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_3.jpg"><img src="scenes/room_0/inputs/view_3.jpg" alt="room_0 input view 3" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_4.jpg"><img src="scenes/room_0/inputs/view_4.jpg" alt="room_0 input view 4" loading="lazy"></a>
+<a href="scenes/room_0/inputs/view_5.jpg"><img src="scenes/room_0/inputs/view_5.jpg" alt="room_0 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/room_0/points.jpg"><img src="scenes/room_0/points.jpg" alt="room_0 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/room_0/s2_ts_est_0.jpg"><img src="scenes/room_0/s2_ts_est_0.jpg" alt="room_0 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_0/s2_ts_est_1.jpg"><img src="scenes/room_0/s2_ts_est_1.jpg" alt="room_0 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_0/s2_ts_est_2.jpg"><img src="scenes/room_0/s2_ts_est_2.jpg" alt="room_0 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_0/s2_ts_est_3.jpg"><img src="scenes/room_0/s2_ts_est_3.jpg" alt="room_0 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/room_0/s2_ts_sensor_0.jpg"><img src="scenes/room_0/s2_ts_sensor_0.jpg" alt="room_0 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_0/s2_ts_sensor_1.jpg"><img src="scenes/room_0/s2_ts_sensor_1.jpg" alt="room_0 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_0/s2_ts_sensor_2.jpg"><img src="scenes/room_0/s2_ts_sensor_2.jpg" alt="room_0 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_0/s2_ts_sensor_3.jpg"><img src="scenes/room_0/s2_ts_sensor_3.jpg" alt="room_0 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/room_0/s2_genrecon_0.jpg"><img src="scenes/room_0/s2_genrecon_0.jpg" alt="room_0 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_genrecon_1.jpg"><img src="scenes/room_0/s2_genrecon_1.jpg" alt="room_0 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_genrecon_2.jpg"><img src="scenes/room_0/s2_genrecon_2.jpg" alt="room_0 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_genrecon_3.jpg"><img src="scenes/room_0/s2_genrecon_3.jpg" alt="room_0 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/room_0/s2_da3_0.jpg"><img src="scenes/room_0/s2_da3_0.jpg" alt="room_0 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_da3_1.jpg"><img src="scenes/room_0/s2_da3_1.jpg" alt="room_0 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_da3_2.jpg"><img src="scenes/room_0/s2_da3_2.jpg" alt="room_0 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_da3_3.jpg"><img src="scenes/room_0/s2_da3_3.jpg" alt="room_0 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/room_0/s2_vggt_0.jpg"><img src="scenes/room_0/s2_vggt_0.jpg" alt="room_0 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_vggt_1.jpg"><img src="scenes/room_0/s2_vggt_1.jpg" alt="room_0 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_vggt_2.jpg"><img src="scenes/room_0/s2_vggt_2.jpg" alt="room_0 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_vggt_3.jpg"><img src="scenes/room_0/s2_vggt_3.jpg" alt="room_0 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/room_0/s2_lingbot_0.jpg"><img src="scenes/room_0/s2_lingbot_0.jpg" alt="room_0 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_lingbot_1.jpg"><img src="scenes/room_0/s2_lingbot_1.jpg" alt="room_0 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_lingbot_2.jpg"><img src="scenes/room_0/s2_lingbot_2.jpg" alt="room_0 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_lingbot_3.jpg"><img src="scenes/room_0/s2_lingbot_3.jpg" alt="room_0 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/room_0/s2_finerecon_0.jpg"><img src="scenes/room_0/s2_finerecon_0.jpg" alt="room_0 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_finerecon_1.jpg"><img src="scenes/room_0/s2_finerecon_1.jpg" alt="room_0 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_finerecon_2.jpg"><img src="scenes/room_0/s2_finerecon_2.jpg" alt="room_0 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_finerecon_3.jpg"><img src="scenes/room_0/s2_finerecon_3.jpg" alt="room_0 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/room_0/s2_murre_0.jpg"><img src="scenes/room_0/s2_murre_0.jpg" alt="room_0 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_murre_1.jpg"><img src="scenes/room_0/s2_murre_1.jpg" alt="room_0 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_murre_2.jpg"><img src="scenes/room_0/s2_murre_2.jpg" alt="room_0 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_0/s2_murre_3.jpg"><img src="scenes/room_0/s2_murre_3.jpg" alt="room_0 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/room_0/s2_gt_0.jpg"><img src="scenes/room_0/s2_gt_0.jpg" alt="room_0 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_0/s2_gt_1.jpg"><img src="scenes/room_0/s2_gt_1.jpg" alt="room_0 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_0/s2_gt_2.jpg"><img src="scenes/room_0/s2_gt_2.jpg" alt="room_0 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_0/s2_gt_3.jpg"><img src="scenes/room_0/s2_gt_3.jpg" alt="room_0 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-room_1">room_1</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/room_1/inputs/view_0.jpg"><img src="scenes/room_1/inputs/view_0.jpg" alt="room_1 input view 0" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_1.jpg"><img src="scenes/room_1/inputs/view_1.jpg" alt="room_1 input view 1" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_2.jpg"><img src="scenes/room_1/inputs/view_2.jpg" alt="room_1 input view 2" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_3.jpg"><img src="scenes/room_1/inputs/view_3.jpg" alt="room_1 input view 3" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_4.jpg"><img src="scenes/room_1/inputs/view_4.jpg" alt="room_1 input view 4" loading="lazy"></a>
+<a href="scenes/room_1/inputs/view_5.jpg"><img src="scenes/room_1/inputs/view_5.jpg" alt="room_1 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/room_1/points.jpg"><img src="scenes/room_1/points.jpg" alt="room_1 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/room_1/s2_ts_est_0.jpg"><img src="scenes/room_1/s2_ts_est_0.jpg" alt="room_1 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_1/s2_ts_est_1.jpg"><img src="scenes/room_1/s2_ts_est_1.jpg" alt="room_1 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_1/s2_ts_est_2.jpg"><img src="scenes/room_1/s2_ts_est_2.jpg" alt="room_1 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_1/s2_ts_est_3.jpg"><img src="scenes/room_1/s2_ts_est_3.jpg" alt="room_1 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/room_1/s2_ts_sensor_0.jpg"><img src="scenes/room_1/s2_ts_sensor_0.jpg" alt="room_1 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_1/s2_ts_sensor_1.jpg"><img src="scenes/room_1/s2_ts_sensor_1.jpg" alt="room_1 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_1/s2_ts_sensor_2.jpg"><img src="scenes/room_1/s2_ts_sensor_2.jpg" alt="room_1 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_1/s2_ts_sensor_3.jpg"><img src="scenes/room_1/s2_ts_sensor_3.jpg" alt="room_1 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/room_1/s2_genrecon_0.jpg"><img src="scenes/room_1/s2_genrecon_0.jpg" alt="room_1 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_genrecon_1.jpg"><img src="scenes/room_1/s2_genrecon_1.jpg" alt="room_1 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_genrecon_2.jpg"><img src="scenes/room_1/s2_genrecon_2.jpg" alt="room_1 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_genrecon_3.jpg"><img src="scenes/room_1/s2_genrecon_3.jpg" alt="room_1 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/room_1/s2_da3_0.jpg"><img src="scenes/room_1/s2_da3_0.jpg" alt="room_1 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_da3_1.jpg"><img src="scenes/room_1/s2_da3_1.jpg" alt="room_1 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_da3_2.jpg"><img src="scenes/room_1/s2_da3_2.jpg" alt="room_1 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_da3_3.jpg"><img src="scenes/room_1/s2_da3_3.jpg" alt="room_1 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/room_1/s2_vggt_0.jpg"><img src="scenes/room_1/s2_vggt_0.jpg" alt="room_1 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_vggt_1.jpg"><img src="scenes/room_1/s2_vggt_1.jpg" alt="room_1 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_vggt_2.jpg"><img src="scenes/room_1/s2_vggt_2.jpg" alt="room_1 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_vggt_3.jpg"><img src="scenes/room_1/s2_vggt_3.jpg" alt="room_1 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/room_1/s2_lingbot_0.jpg"><img src="scenes/room_1/s2_lingbot_0.jpg" alt="room_1 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_lingbot_1.jpg"><img src="scenes/room_1/s2_lingbot_1.jpg" alt="room_1 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_lingbot_2.jpg"><img src="scenes/room_1/s2_lingbot_2.jpg" alt="room_1 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_lingbot_3.jpg"><img src="scenes/room_1/s2_lingbot_3.jpg" alt="room_1 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/room_1/s2_finerecon_0.jpg"><img src="scenes/room_1/s2_finerecon_0.jpg" alt="room_1 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_finerecon_1.jpg"><img src="scenes/room_1/s2_finerecon_1.jpg" alt="room_1 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_finerecon_2.jpg"><img src="scenes/room_1/s2_finerecon_2.jpg" alt="room_1 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_finerecon_3.jpg"><img src="scenes/room_1/s2_finerecon_3.jpg" alt="room_1 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/room_1/s2_murre_0.jpg"><img src="scenes/room_1/s2_murre_0.jpg" alt="room_1 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_murre_1.jpg"><img src="scenes/room_1/s2_murre_1.jpg" alt="room_1 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_murre_2.jpg"><img src="scenes/room_1/s2_murre_2.jpg" alt="room_1 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_1/s2_murre_3.jpg"><img src="scenes/room_1/s2_murre_3.jpg" alt="room_1 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/room_1/s2_gt_0.jpg"><img src="scenes/room_1/s2_gt_0.jpg" alt="room_1 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_1/s2_gt_1.jpg"><img src="scenes/room_1/s2_gt_1.jpg" alt="room_1 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_1/s2_gt_2.jpg"><img src="scenes/room_1/s2_gt_2.jpg" alt="room_1 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_1/s2_gt_3.jpg"><img src="scenes/room_1/s2_gt_3.jpg" alt="room_1 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-room_2">room_2</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/room_2/inputs/view_0.jpg"><img src="scenes/room_2/inputs/view_0.jpg" alt="room_2 input view 0" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_1.jpg"><img src="scenes/room_2/inputs/view_1.jpg" alt="room_2 input view 1" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_2.jpg"><img src="scenes/room_2/inputs/view_2.jpg" alt="room_2 input view 2" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_3.jpg"><img src="scenes/room_2/inputs/view_3.jpg" alt="room_2 input view 3" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_4.jpg"><img src="scenes/room_2/inputs/view_4.jpg" alt="room_2 input view 4" loading="lazy"></a>
+<a href="scenes/room_2/inputs/view_5.jpg"><img src="scenes/room_2/inputs/view_5.jpg" alt="room_2 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/room_2/points.jpg"><img src="scenes/room_2/points.jpg" alt="room_2 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/room_2/s2_ts_est_0.jpg"><img src="scenes/room_2/s2_ts_est_0.jpg" alt="room_2 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_2/s2_ts_est_1.jpg"><img src="scenes/room_2/s2_ts_est_1.jpg" alt="room_2 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_2/s2_ts_est_2.jpg"><img src="scenes/room_2/s2_ts_est_2.jpg" alt="room_2 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_2/s2_ts_est_3.jpg"><img src="scenes/room_2/s2_ts_est_3.jpg" alt="room_2 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/room_2/s2_ts_sensor_0.jpg"><img src="scenes/room_2/s2_ts_sensor_0.jpg" alt="room_2 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_2/s2_ts_sensor_1.jpg"><img src="scenes/room_2/s2_ts_sensor_1.jpg" alt="room_2 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_2/s2_ts_sensor_2.jpg"><img src="scenes/room_2/s2_ts_sensor_2.jpg" alt="room_2 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/room_2/s2_ts_sensor_3.jpg"><img src="scenes/room_2/s2_ts_sensor_3.jpg" alt="room_2 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/room_2/s2_genrecon_0.jpg"><img src="scenes/room_2/s2_genrecon_0.jpg" alt="room_2 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_genrecon_1.jpg"><img src="scenes/room_2/s2_genrecon_1.jpg" alt="room_2 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_genrecon_2.jpg"><img src="scenes/room_2/s2_genrecon_2.jpg" alt="room_2 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_genrecon_3.jpg"><img src="scenes/room_2/s2_genrecon_3.jpg" alt="room_2 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/room_2/s2_da3_0.jpg"><img src="scenes/room_2/s2_da3_0.jpg" alt="room_2 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_da3_1.jpg"><img src="scenes/room_2/s2_da3_1.jpg" alt="room_2 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_da3_2.jpg"><img src="scenes/room_2/s2_da3_2.jpg" alt="room_2 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_da3_3.jpg"><img src="scenes/room_2/s2_da3_3.jpg" alt="room_2 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/room_2/s2_vggt_0.jpg"><img src="scenes/room_2/s2_vggt_0.jpg" alt="room_2 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_vggt_1.jpg"><img src="scenes/room_2/s2_vggt_1.jpg" alt="room_2 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_vggt_2.jpg"><img src="scenes/room_2/s2_vggt_2.jpg" alt="room_2 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_vggt_3.jpg"><img src="scenes/room_2/s2_vggt_3.jpg" alt="room_2 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/room_2/s2_lingbot_0.jpg"><img src="scenes/room_2/s2_lingbot_0.jpg" alt="room_2 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_lingbot_1.jpg"><img src="scenes/room_2/s2_lingbot_1.jpg" alt="room_2 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_lingbot_2.jpg"><img src="scenes/room_2/s2_lingbot_2.jpg" alt="room_2 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_lingbot_3.jpg"><img src="scenes/room_2/s2_lingbot_3.jpg" alt="room_2 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/room_2/s2_finerecon_0.jpg"><img src="scenes/room_2/s2_finerecon_0.jpg" alt="room_2 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_finerecon_1.jpg"><img src="scenes/room_2/s2_finerecon_1.jpg" alt="room_2 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_finerecon_2.jpg"><img src="scenes/room_2/s2_finerecon_2.jpg" alt="room_2 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_finerecon_3.jpg"><img src="scenes/room_2/s2_finerecon_3.jpg" alt="room_2 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/room_2/s2_murre_0.jpg"><img src="scenes/room_2/s2_murre_0.jpg" alt="room_2 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_murre_1.jpg"><img src="scenes/room_2/s2_murre_1.jpg" alt="room_2 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_murre_2.jpg"><img src="scenes/room_2/s2_murre_2.jpg" alt="room_2 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/room_2/s2_murre_3.jpg"><img src="scenes/room_2/s2_murre_3.jpg" alt="room_2 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/room_2/s2_gt_0.jpg"><img src="scenes/room_2/s2_gt_0.jpg" alt="room_2 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_2/s2_gt_1.jpg"><img src="scenes/room_2/s2_gt_1.jpg" alt="room_2 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_2/s2_gt_2.jpg"><img src="scenes/room_2/s2_gt_2.jpg" alt="room_2 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/room_2/s2_gt_3.jpg"><img src="scenes/room_2/s2_gt_3.jpg" alt="room_2 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-office_0">office_0</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/office_0/inputs/view_0.jpg"><img src="scenes/office_0/inputs/view_0.jpg" alt="office_0 input view 0" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_1.jpg"><img src="scenes/office_0/inputs/view_1.jpg" alt="office_0 input view 1" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_2.jpg"><img src="scenes/office_0/inputs/view_2.jpg" alt="office_0 input view 2" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_3.jpg"><img src="scenes/office_0/inputs/view_3.jpg" alt="office_0 input view 3" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_4.jpg"><img src="scenes/office_0/inputs/view_4.jpg" alt="office_0 input view 4" loading="lazy"></a>
+<a href="scenes/office_0/inputs/view_5.jpg"><img src="scenes/office_0/inputs/view_5.jpg" alt="office_0 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/office_0/points.jpg"><img src="scenes/office_0/points.jpg" alt="office_0 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/office_0/s2_ts_est_0.jpg"><img src="scenes/office_0/s2_ts_est_0.jpg" alt="office_0 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_0/s2_ts_est_1.jpg"><img src="scenes/office_0/s2_ts_est_1.jpg" alt="office_0 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_0/s2_ts_est_2.jpg"><img src="scenes/office_0/s2_ts_est_2.jpg" alt="office_0 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_0/s2_ts_est_3.jpg"><img src="scenes/office_0/s2_ts_est_3.jpg" alt="office_0 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/office_0/s2_ts_sensor_0.jpg"><img src="scenes/office_0/s2_ts_sensor_0.jpg" alt="office_0 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_0/s2_ts_sensor_1.jpg"><img src="scenes/office_0/s2_ts_sensor_1.jpg" alt="office_0 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_0/s2_ts_sensor_2.jpg"><img src="scenes/office_0/s2_ts_sensor_2.jpg" alt="office_0 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_0/s2_ts_sensor_3.jpg"><img src="scenes/office_0/s2_ts_sensor_3.jpg" alt="office_0 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/office_0/s2_genrecon_0.jpg"><img src="scenes/office_0/s2_genrecon_0.jpg" alt="office_0 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_genrecon_1.jpg"><img src="scenes/office_0/s2_genrecon_1.jpg" alt="office_0 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_genrecon_2.jpg"><img src="scenes/office_0/s2_genrecon_2.jpg" alt="office_0 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_genrecon_3.jpg"><img src="scenes/office_0/s2_genrecon_3.jpg" alt="office_0 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/office_0/s2_da3_0.jpg"><img src="scenes/office_0/s2_da3_0.jpg" alt="office_0 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_da3_1.jpg"><img src="scenes/office_0/s2_da3_1.jpg" alt="office_0 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_da3_2.jpg"><img src="scenes/office_0/s2_da3_2.jpg" alt="office_0 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_da3_3.jpg"><img src="scenes/office_0/s2_da3_3.jpg" alt="office_0 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/office_0/s2_vggt_0.jpg"><img src="scenes/office_0/s2_vggt_0.jpg" alt="office_0 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_vggt_1.jpg"><img src="scenes/office_0/s2_vggt_1.jpg" alt="office_0 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_vggt_2.jpg"><img src="scenes/office_0/s2_vggt_2.jpg" alt="office_0 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_vggt_3.jpg"><img src="scenes/office_0/s2_vggt_3.jpg" alt="office_0 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/office_0/s2_lingbot_0.jpg"><img src="scenes/office_0/s2_lingbot_0.jpg" alt="office_0 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_lingbot_1.jpg"><img src="scenes/office_0/s2_lingbot_1.jpg" alt="office_0 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_lingbot_2.jpg"><img src="scenes/office_0/s2_lingbot_2.jpg" alt="office_0 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_lingbot_3.jpg"><img src="scenes/office_0/s2_lingbot_3.jpg" alt="office_0 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/office_0/s2_finerecon_0.jpg"><img src="scenes/office_0/s2_finerecon_0.jpg" alt="office_0 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_finerecon_1.jpg"><img src="scenes/office_0/s2_finerecon_1.jpg" alt="office_0 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_finerecon_2.jpg"><img src="scenes/office_0/s2_finerecon_2.jpg" alt="office_0 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_finerecon_3.jpg"><img src="scenes/office_0/s2_finerecon_3.jpg" alt="office_0 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/office_0/s2_murre_0.jpg"><img src="scenes/office_0/s2_murre_0.jpg" alt="office_0 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_murre_1.jpg"><img src="scenes/office_0/s2_murre_1.jpg" alt="office_0 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_murre_2.jpg"><img src="scenes/office_0/s2_murre_2.jpg" alt="office_0 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_0/s2_murre_3.jpg"><img src="scenes/office_0/s2_murre_3.jpg" alt="office_0 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/office_0/s2_gt_0.jpg"><img src="scenes/office_0/s2_gt_0.jpg" alt="office_0 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_0/s2_gt_1.jpg"><img src="scenes/office_0/s2_gt_1.jpg" alt="office_0 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_0/s2_gt_2.jpg"><img src="scenes/office_0/s2_gt_2.jpg" alt="office_0 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_0/s2_gt_3.jpg"><img src="scenes/office_0/s2_gt_3.jpg" alt="office_0 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-office_1">office_1</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/office_1/inputs/view_0.jpg"><img src="scenes/office_1/inputs/view_0.jpg" alt="office_1 input view 0" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_1.jpg"><img src="scenes/office_1/inputs/view_1.jpg" alt="office_1 input view 1" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_2.jpg"><img src="scenes/office_1/inputs/view_2.jpg" alt="office_1 input view 2" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_3.jpg"><img src="scenes/office_1/inputs/view_3.jpg" alt="office_1 input view 3" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_4.jpg"><img src="scenes/office_1/inputs/view_4.jpg" alt="office_1 input view 4" loading="lazy"></a>
+<a href="scenes/office_1/inputs/view_5.jpg"><img src="scenes/office_1/inputs/view_5.jpg" alt="office_1 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/office_1/points.jpg"><img src="scenes/office_1/points.jpg" alt="office_1 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/office_1/s2_ts_est_0.jpg"><img src="scenes/office_1/s2_ts_est_0.jpg" alt="office_1 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_1/s2_ts_est_1.jpg"><img src="scenes/office_1/s2_ts_est_1.jpg" alt="office_1 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_1/s2_ts_est_2.jpg"><img src="scenes/office_1/s2_ts_est_2.jpg" alt="office_1 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_1/s2_ts_est_3.jpg"><img src="scenes/office_1/s2_ts_est_3.jpg" alt="office_1 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/office_1/s2_ts_sensor_0.jpg"><img src="scenes/office_1/s2_ts_sensor_0.jpg" alt="office_1 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_1/s2_ts_sensor_1.jpg"><img src="scenes/office_1/s2_ts_sensor_1.jpg" alt="office_1 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_1/s2_ts_sensor_2.jpg"><img src="scenes/office_1/s2_ts_sensor_2.jpg" alt="office_1 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_1/s2_ts_sensor_3.jpg"><img src="scenes/office_1/s2_ts_sensor_3.jpg" alt="office_1 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/office_1/s2_genrecon_0.jpg"><img src="scenes/office_1/s2_genrecon_0.jpg" alt="office_1 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_genrecon_1.jpg"><img src="scenes/office_1/s2_genrecon_1.jpg" alt="office_1 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_genrecon_2.jpg"><img src="scenes/office_1/s2_genrecon_2.jpg" alt="office_1 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_genrecon_3.jpg"><img src="scenes/office_1/s2_genrecon_3.jpg" alt="office_1 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/office_1/s2_da3_0.jpg"><img src="scenes/office_1/s2_da3_0.jpg" alt="office_1 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_da3_1.jpg"><img src="scenes/office_1/s2_da3_1.jpg" alt="office_1 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_da3_2.jpg"><img src="scenes/office_1/s2_da3_2.jpg" alt="office_1 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_da3_3.jpg"><img src="scenes/office_1/s2_da3_3.jpg" alt="office_1 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/office_1/s2_vggt_0.jpg"><img src="scenes/office_1/s2_vggt_0.jpg" alt="office_1 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_vggt_1.jpg"><img src="scenes/office_1/s2_vggt_1.jpg" alt="office_1 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_vggt_2.jpg"><img src="scenes/office_1/s2_vggt_2.jpg" alt="office_1 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_vggt_3.jpg"><img src="scenes/office_1/s2_vggt_3.jpg" alt="office_1 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/office_1/s2_lingbot_0.jpg"><img src="scenes/office_1/s2_lingbot_0.jpg" alt="office_1 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_lingbot_1.jpg"><img src="scenes/office_1/s2_lingbot_1.jpg" alt="office_1 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_lingbot_2.jpg"><img src="scenes/office_1/s2_lingbot_2.jpg" alt="office_1 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_lingbot_3.jpg"><img src="scenes/office_1/s2_lingbot_3.jpg" alt="office_1 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/office_1/s2_finerecon_0.jpg"><img src="scenes/office_1/s2_finerecon_0.jpg" alt="office_1 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_finerecon_1.jpg"><img src="scenes/office_1/s2_finerecon_1.jpg" alt="office_1 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_finerecon_2.jpg"><img src="scenes/office_1/s2_finerecon_2.jpg" alt="office_1 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_finerecon_3.jpg"><img src="scenes/office_1/s2_finerecon_3.jpg" alt="office_1 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/office_1/s2_murre_0.jpg"><img src="scenes/office_1/s2_murre_0.jpg" alt="office_1 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_murre_1.jpg"><img src="scenes/office_1/s2_murre_1.jpg" alt="office_1 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_murre_2.jpg"><img src="scenes/office_1/s2_murre_2.jpg" alt="office_1 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_1/s2_murre_3.jpg"><img src="scenes/office_1/s2_murre_3.jpg" alt="office_1 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/office_1/s2_gt_0.jpg"><img src="scenes/office_1/s2_gt_0.jpg" alt="office_1 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_1/s2_gt_1.jpg"><img src="scenes/office_1/s2_gt_1.jpg" alt="office_1 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_1/s2_gt_2.jpg"><img src="scenes/office_1/s2_gt_2.jpg" alt="office_1 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_1/s2_gt_3.jpg"><img src="scenes/office_1/s2_gt_3.jpg" alt="office_1 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-office_2">office_2</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/office_2/inputs/view_0.jpg"><img src="scenes/office_2/inputs/view_0.jpg" alt="office_2 input view 0" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_1.jpg"><img src="scenes/office_2/inputs/view_1.jpg" alt="office_2 input view 1" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_2.jpg"><img src="scenes/office_2/inputs/view_2.jpg" alt="office_2 input view 2" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_3.jpg"><img src="scenes/office_2/inputs/view_3.jpg" alt="office_2 input view 3" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_4.jpg"><img src="scenes/office_2/inputs/view_4.jpg" alt="office_2 input view 4" loading="lazy"></a>
+<a href="scenes/office_2/inputs/view_5.jpg"><img src="scenes/office_2/inputs/view_5.jpg" alt="office_2 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/office_2/points.jpg"><img src="scenes/office_2/points.jpg" alt="office_2 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/office_2/s2_ts_est_0.jpg"><img src="scenes/office_2/s2_ts_est_0.jpg" alt="office_2 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_2/s2_ts_est_1.jpg"><img src="scenes/office_2/s2_ts_est_1.jpg" alt="office_2 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_2/s2_ts_est_2.jpg"><img src="scenes/office_2/s2_ts_est_2.jpg" alt="office_2 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_2/s2_ts_est_3.jpg"><img src="scenes/office_2/s2_ts_est_3.jpg" alt="office_2 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/office_2/s2_ts_sensor_0.jpg"><img src="scenes/office_2/s2_ts_sensor_0.jpg" alt="office_2 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_2/s2_ts_sensor_1.jpg"><img src="scenes/office_2/s2_ts_sensor_1.jpg" alt="office_2 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_2/s2_ts_sensor_2.jpg"><img src="scenes/office_2/s2_ts_sensor_2.jpg" alt="office_2 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_2/s2_ts_sensor_3.jpg"><img src="scenes/office_2/s2_ts_sensor_3.jpg" alt="office_2 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/office_2/s2_genrecon_0.jpg"><img src="scenes/office_2/s2_genrecon_0.jpg" alt="office_2 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_genrecon_1.jpg"><img src="scenes/office_2/s2_genrecon_1.jpg" alt="office_2 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_genrecon_2.jpg"><img src="scenes/office_2/s2_genrecon_2.jpg" alt="office_2 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_genrecon_3.jpg"><img src="scenes/office_2/s2_genrecon_3.jpg" alt="office_2 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/office_2/s2_da3_0.jpg"><img src="scenes/office_2/s2_da3_0.jpg" alt="office_2 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_da3_1.jpg"><img src="scenes/office_2/s2_da3_1.jpg" alt="office_2 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_da3_2.jpg"><img src="scenes/office_2/s2_da3_2.jpg" alt="office_2 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_da3_3.jpg"><img src="scenes/office_2/s2_da3_3.jpg" alt="office_2 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/office_2/s2_vggt_0.jpg"><img src="scenes/office_2/s2_vggt_0.jpg" alt="office_2 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_vggt_1.jpg"><img src="scenes/office_2/s2_vggt_1.jpg" alt="office_2 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_vggt_2.jpg"><img src="scenes/office_2/s2_vggt_2.jpg" alt="office_2 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_vggt_3.jpg"><img src="scenes/office_2/s2_vggt_3.jpg" alt="office_2 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/office_2/s2_lingbot_0.jpg"><img src="scenes/office_2/s2_lingbot_0.jpg" alt="office_2 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_lingbot_1.jpg"><img src="scenes/office_2/s2_lingbot_1.jpg" alt="office_2 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_lingbot_2.jpg"><img src="scenes/office_2/s2_lingbot_2.jpg" alt="office_2 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_lingbot_3.jpg"><img src="scenes/office_2/s2_lingbot_3.jpg" alt="office_2 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/office_2/s2_finerecon_0.jpg"><img src="scenes/office_2/s2_finerecon_0.jpg" alt="office_2 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_finerecon_1.jpg"><img src="scenes/office_2/s2_finerecon_1.jpg" alt="office_2 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_finerecon_2.jpg"><img src="scenes/office_2/s2_finerecon_2.jpg" alt="office_2 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_finerecon_3.jpg"><img src="scenes/office_2/s2_finerecon_3.jpg" alt="office_2 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/office_2/s2_murre_0.jpg"><img src="scenes/office_2/s2_murre_0.jpg" alt="office_2 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_murre_1.jpg"><img src="scenes/office_2/s2_murre_1.jpg" alt="office_2 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_murre_2.jpg"><img src="scenes/office_2/s2_murre_2.jpg" alt="office_2 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_2/s2_murre_3.jpg"><img src="scenes/office_2/s2_murre_3.jpg" alt="office_2 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/office_2/s2_gt_0.jpg"><img src="scenes/office_2/s2_gt_0.jpg" alt="office_2 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_2/s2_gt_1.jpg"><img src="scenes/office_2/s2_gt_1.jpg" alt="office_2 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_2/s2_gt_2.jpg"><img src="scenes/office_2/s2_gt_2.jpg" alt="office_2 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_2/s2_gt_3.jpg"><img src="scenes/office_2/s2_gt_3.jpg" alt="office_2 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-office_3">office_3</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/office_3/inputs/view_0.jpg"><img src="scenes/office_3/inputs/view_0.jpg" alt="office_3 input view 0" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_1.jpg"><img src="scenes/office_3/inputs/view_1.jpg" alt="office_3 input view 1" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_2.jpg"><img src="scenes/office_3/inputs/view_2.jpg" alt="office_3 input view 2" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_3.jpg"><img src="scenes/office_3/inputs/view_3.jpg" alt="office_3 input view 3" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_4.jpg"><img src="scenes/office_3/inputs/view_4.jpg" alt="office_3 input view 4" loading="lazy"></a>
+<a href="scenes/office_3/inputs/view_5.jpg"><img src="scenes/office_3/inputs/view_5.jpg" alt="office_3 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/office_3/points.jpg"><img src="scenes/office_3/points.jpg" alt="office_3 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/office_3/s2_ts_est_0.jpg"><img src="scenes/office_3/s2_ts_est_0.jpg" alt="office_3 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_3/s2_ts_est_1.jpg"><img src="scenes/office_3/s2_ts_est_1.jpg" alt="office_3 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_3/s2_ts_est_2.jpg"><img src="scenes/office_3/s2_ts_est_2.jpg" alt="office_3 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_3/s2_ts_est_3.jpg"><img src="scenes/office_3/s2_ts_est_3.jpg" alt="office_3 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/office_3/s2_ts_sensor_0.jpg"><img src="scenes/office_3/s2_ts_sensor_0.jpg" alt="office_3 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_3/s2_ts_sensor_1.jpg"><img src="scenes/office_3/s2_ts_sensor_1.jpg" alt="office_3 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_3/s2_ts_sensor_2.jpg"><img src="scenes/office_3/s2_ts_sensor_2.jpg" alt="office_3 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_3/s2_ts_sensor_3.jpg"><img src="scenes/office_3/s2_ts_sensor_3.jpg" alt="office_3 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/office_3/s2_genrecon_0.jpg"><img src="scenes/office_3/s2_genrecon_0.jpg" alt="office_3 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_genrecon_1.jpg"><img src="scenes/office_3/s2_genrecon_1.jpg" alt="office_3 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_genrecon_2.jpg"><img src="scenes/office_3/s2_genrecon_2.jpg" alt="office_3 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_genrecon_3.jpg"><img src="scenes/office_3/s2_genrecon_3.jpg" alt="office_3 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/office_3/s2_da3_0.jpg"><img src="scenes/office_3/s2_da3_0.jpg" alt="office_3 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_da3_1.jpg"><img src="scenes/office_3/s2_da3_1.jpg" alt="office_3 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_da3_2.jpg"><img src="scenes/office_3/s2_da3_2.jpg" alt="office_3 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_da3_3.jpg"><img src="scenes/office_3/s2_da3_3.jpg" alt="office_3 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/office_3/s2_vggt_0.jpg"><img src="scenes/office_3/s2_vggt_0.jpg" alt="office_3 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_vggt_1.jpg"><img src="scenes/office_3/s2_vggt_1.jpg" alt="office_3 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_vggt_2.jpg"><img src="scenes/office_3/s2_vggt_2.jpg" alt="office_3 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_vggt_3.jpg"><img src="scenes/office_3/s2_vggt_3.jpg" alt="office_3 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/office_3/s2_lingbot_0.jpg"><img src="scenes/office_3/s2_lingbot_0.jpg" alt="office_3 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_lingbot_1.jpg"><img src="scenes/office_3/s2_lingbot_1.jpg" alt="office_3 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_lingbot_2.jpg"><img src="scenes/office_3/s2_lingbot_2.jpg" alt="office_3 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_lingbot_3.jpg"><img src="scenes/office_3/s2_lingbot_3.jpg" alt="office_3 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/office_3/s2_finerecon_0.jpg"><img src="scenes/office_3/s2_finerecon_0.jpg" alt="office_3 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_finerecon_1.jpg"><img src="scenes/office_3/s2_finerecon_1.jpg" alt="office_3 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_finerecon_2.jpg"><img src="scenes/office_3/s2_finerecon_2.jpg" alt="office_3 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_finerecon_3.jpg"><img src="scenes/office_3/s2_finerecon_3.jpg" alt="office_3 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/office_3/s2_murre_0.jpg"><img src="scenes/office_3/s2_murre_0.jpg" alt="office_3 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_murre_1.jpg"><img src="scenes/office_3/s2_murre_1.jpg" alt="office_3 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_murre_2.jpg"><img src="scenes/office_3/s2_murre_2.jpg" alt="office_3 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_3/s2_murre_3.jpg"><img src="scenes/office_3/s2_murre_3.jpg" alt="office_3 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/office_3/s2_gt_0.jpg"><img src="scenes/office_3/s2_gt_0.jpg" alt="office_3 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_3/s2_gt_1.jpg"><img src="scenes/office_3/s2_gt_1.jpg" alt="office_3 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_3/s2_gt_2.jpg"><img src="scenes/office_3/s2_gt_2.jpg" alt="office_3 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_3/s2_gt_3.jpg"><img src="scenes/office_3/s2_gt_3.jpg" alt="office_3 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-office_4">office_4</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/office_4/inputs/view_0.jpg"><img src="scenes/office_4/inputs/view_0.jpg" alt="office_4 input view 0" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_1.jpg"><img src="scenes/office_4/inputs/view_1.jpg" alt="office_4 input view 1" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_2.jpg"><img src="scenes/office_4/inputs/view_2.jpg" alt="office_4 input view 2" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_3.jpg"><img src="scenes/office_4/inputs/view_3.jpg" alt="office_4 input view 3" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_4.jpg"><img src="scenes/office_4/inputs/view_4.jpg" alt="office_4 input view 4" loading="lazy"></a>
+<a href="scenes/office_4/inputs/view_5.jpg"><img src="scenes/office_4/inputs/view_5.jpg" alt="office_4 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/office_4/points.jpg"><img src="scenes/office_4/points.jpg" alt="office_4 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/office_4/s2_ts_est_0.jpg"><img src="scenes/office_4/s2_ts_est_0.jpg" alt="office_4 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_4/s2_ts_est_1.jpg"><img src="scenes/office_4/s2_ts_est_1.jpg" alt="office_4 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_4/s2_ts_est_2.jpg"><img src="scenes/office_4/s2_ts_est_2.jpg" alt="office_4 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_4/s2_ts_est_3.jpg"><img src="scenes/office_4/s2_ts_est_3.jpg" alt="office_4 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/office_4/s2_ts_sensor_0.jpg"><img src="scenes/office_4/s2_ts_sensor_0.jpg" alt="office_4 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_4/s2_ts_sensor_1.jpg"><img src="scenes/office_4/s2_ts_sensor_1.jpg" alt="office_4 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_4/s2_ts_sensor_2.jpg"><img src="scenes/office_4/s2_ts_sensor_2.jpg" alt="office_4 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/office_4/s2_ts_sensor_3.jpg"><img src="scenes/office_4/s2_ts_sensor_3.jpg" alt="office_4 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/office_4/s2_genrecon_0.jpg"><img src="scenes/office_4/s2_genrecon_0.jpg" alt="office_4 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_genrecon_1.jpg"><img src="scenes/office_4/s2_genrecon_1.jpg" alt="office_4 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_genrecon_2.jpg"><img src="scenes/office_4/s2_genrecon_2.jpg" alt="office_4 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_genrecon_3.jpg"><img src="scenes/office_4/s2_genrecon_3.jpg" alt="office_4 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/office_4/s2_da3_0.jpg"><img src="scenes/office_4/s2_da3_0.jpg" alt="office_4 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_da3_1.jpg"><img src="scenes/office_4/s2_da3_1.jpg" alt="office_4 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_da3_2.jpg"><img src="scenes/office_4/s2_da3_2.jpg" alt="office_4 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_da3_3.jpg"><img src="scenes/office_4/s2_da3_3.jpg" alt="office_4 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/office_4/s2_vggt_0.jpg"><img src="scenes/office_4/s2_vggt_0.jpg" alt="office_4 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_vggt_1.jpg"><img src="scenes/office_4/s2_vggt_1.jpg" alt="office_4 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_vggt_2.jpg"><img src="scenes/office_4/s2_vggt_2.jpg" alt="office_4 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_vggt_3.jpg"><img src="scenes/office_4/s2_vggt_3.jpg" alt="office_4 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/office_4/s2_lingbot_0.jpg"><img src="scenes/office_4/s2_lingbot_0.jpg" alt="office_4 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_lingbot_1.jpg"><img src="scenes/office_4/s2_lingbot_1.jpg" alt="office_4 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_lingbot_2.jpg"><img src="scenes/office_4/s2_lingbot_2.jpg" alt="office_4 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_lingbot_3.jpg"><img src="scenes/office_4/s2_lingbot_3.jpg" alt="office_4 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/office_4/s2_finerecon_0.jpg"><img src="scenes/office_4/s2_finerecon_0.jpg" alt="office_4 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_finerecon_1.jpg"><img src="scenes/office_4/s2_finerecon_1.jpg" alt="office_4 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_finerecon_2.jpg"><img src="scenes/office_4/s2_finerecon_2.jpg" alt="office_4 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_finerecon_3.jpg"><img src="scenes/office_4/s2_finerecon_3.jpg" alt="office_4 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/office_4/s2_murre_0.jpg"><img src="scenes/office_4/s2_murre_0.jpg" alt="office_4 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_murre_1.jpg"><img src="scenes/office_4/s2_murre_1.jpg" alt="office_4 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_murre_2.jpg"><img src="scenes/office_4/s2_murre_2.jpg" alt="office_4 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/office_4/s2_murre_3.jpg"><img src="scenes/office_4/s2_murre_3.jpg" alt="office_4 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/office_4/s2_gt_0.jpg"><img src="scenes/office_4/s2_gt_0.jpg" alt="office_4 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_4/s2_gt_1.jpg"><img src="scenes/office_4/s2_gt_1.jpg" alt="office_4 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_4/s2_gt_2.jpg"><img src="scenes/office_4/s2_gt_2.jpg" alt="office_4 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/office_4/s2_gt_3.jpg"><img src="scenes/office_4/s2_gt_3.jpg" alt="office_4 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-hotel_0">hotel_0</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/hotel_0/inputs/view_0.jpg"><img src="scenes/hotel_0/inputs/view_0.jpg" alt="hotel_0 input view 0" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_1.jpg"><img src="scenes/hotel_0/inputs/view_1.jpg" alt="hotel_0 input view 1" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_2.jpg"><img src="scenes/hotel_0/inputs/view_2.jpg" alt="hotel_0 input view 2" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_3.jpg"><img src="scenes/hotel_0/inputs/view_3.jpg" alt="hotel_0 input view 3" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_4.jpg"><img src="scenes/hotel_0/inputs/view_4.jpg" alt="hotel_0 input view 4" loading="lazy"></a>
+<a href="scenes/hotel_0/inputs/view_5.jpg"><img src="scenes/hotel_0/inputs/view_5.jpg" alt="hotel_0 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/hotel_0/points.jpg"><img src="scenes/hotel_0/points.jpg" alt="hotel_0 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/hotel_0/s2_ts_est_0.jpg"><img src="scenes/hotel_0/s2_ts_est_0.jpg" alt="hotel_0 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/hotel_0/s2_ts_est_1.jpg"><img src="scenes/hotel_0/s2_ts_est_1.jpg" alt="hotel_0 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/hotel_0/s2_ts_est_2.jpg"><img src="scenes/hotel_0/s2_ts_est_2.jpg" alt="hotel_0 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/hotel_0/s2_ts_est_3.jpg"><img src="scenes/hotel_0/s2_ts_est_3.jpg" alt="hotel_0 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/hotel_0/s2_ts_sensor_0.jpg"><img src="scenes/hotel_0/s2_ts_sensor_0.jpg" alt="hotel_0 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/hotel_0/s2_ts_sensor_1.jpg"><img src="scenes/hotel_0/s2_ts_sensor_1.jpg" alt="hotel_0 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/hotel_0/s2_ts_sensor_2.jpg"><img src="scenes/hotel_0/s2_ts_sensor_2.jpg" alt="hotel_0 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/hotel_0/s2_ts_sensor_3.jpg"><img src="scenes/hotel_0/s2_ts_sensor_3.jpg" alt="hotel_0 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/hotel_0/s2_genrecon_0.jpg"><img src="scenes/hotel_0/s2_genrecon_0.jpg" alt="hotel_0 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_genrecon_1.jpg"><img src="scenes/hotel_0/s2_genrecon_1.jpg" alt="hotel_0 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_genrecon_2.jpg"><img src="scenes/hotel_0/s2_genrecon_2.jpg" alt="hotel_0 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_genrecon_3.jpg"><img src="scenes/hotel_0/s2_genrecon_3.jpg" alt="hotel_0 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/hotel_0/s2_da3_0.jpg"><img src="scenes/hotel_0/s2_da3_0.jpg" alt="hotel_0 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_da3_1.jpg"><img src="scenes/hotel_0/s2_da3_1.jpg" alt="hotel_0 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_da3_2.jpg"><img src="scenes/hotel_0/s2_da3_2.jpg" alt="hotel_0 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_da3_3.jpg"><img src="scenes/hotel_0/s2_da3_3.jpg" alt="hotel_0 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/hotel_0/s2_vggt_0.jpg"><img src="scenes/hotel_0/s2_vggt_0.jpg" alt="hotel_0 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_vggt_1.jpg"><img src="scenes/hotel_0/s2_vggt_1.jpg" alt="hotel_0 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_vggt_2.jpg"><img src="scenes/hotel_0/s2_vggt_2.jpg" alt="hotel_0 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_vggt_3.jpg"><img src="scenes/hotel_0/s2_vggt_3.jpg" alt="hotel_0 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/hotel_0/s2_lingbot_0.jpg"><img src="scenes/hotel_0/s2_lingbot_0.jpg" alt="hotel_0 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_lingbot_1.jpg"><img src="scenes/hotel_0/s2_lingbot_1.jpg" alt="hotel_0 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_lingbot_2.jpg"><img src="scenes/hotel_0/s2_lingbot_2.jpg" alt="hotel_0 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_lingbot_3.jpg"><img src="scenes/hotel_0/s2_lingbot_3.jpg" alt="hotel_0 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/hotel_0/s2_finerecon_0.jpg"><img src="scenes/hotel_0/s2_finerecon_0.jpg" alt="hotel_0 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_finerecon_1.jpg"><img src="scenes/hotel_0/s2_finerecon_1.jpg" alt="hotel_0 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_finerecon_2.jpg"><img src="scenes/hotel_0/s2_finerecon_2.jpg" alt="hotel_0 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_finerecon_3.jpg"><img src="scenes/hotel_0/s2_finerecon_3.jpg" alt="hotel_0 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/hotel_0/s2_murre_0.jpg"><img src="scenes/hotel_0/s2_murre_0.jpg" alt="hotel_0 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_murre_1.jpg"><img src="scenes/hotel_0/s2_murre_1.jpg" alt="hotel_0 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_murre_2.jpg"><img src="scenes/hotel_0/s2_murre_2.jpg" alt="hotel_0 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/hotel_0/s2_murre_3.jpg"><img src="scenes/hotel_0/s2_murre_3.jpg" alt="hotel_0 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/hotel_0/s2_gt_0.jpg"><img src="scenes/hotel_0/s2_gt_0.jpg" alt="hotel_0 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/hotel_0/s2_gt_1.jpg"><img src="scenes/hotel_0/s2_gt_1.jpg" alt="hotel_0 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/hotel_0/s2_gt_2.jpg"><img src="scenes/hotel_0/s2_gt_2.jpg" alt="hotel_0 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/hotel_0/s2_gt_3.jpg"><img src="scenes/hotel_0/s2_gt_3.jpg" alt="hotel_0 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-apartment_1">apartment_1</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/apartment_1/inputs/view_0.jpg"><img src="scenes/apartment_1/inputs/view_0.jpg" alt="apartment_1 input view 0" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_1.jpg"><img src="scenes/apartment_1/inputs/view_1.jpg" alt="apartment_1 input view 1" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_2.jpg"><img src="scenes/apartment_1/inputs/view_2.jpg" alt="apartment_1 input view 2" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_3.jpg"><img src="scenes/apartment_1/inputs/view_3.jpg" alt="apartment_1 input view 3" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_4.jpg"><img src="scenes/apartment_1/inputs/view_4.jpg" alt="apartment_1 input view 4" loading="lazy"></a>
+<a href="scenes/apartment_1/inputs/view_5.jpg"><img src="scenes/apartment_1/inputs/view_5.jpg" alt="apartment_1 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/apartment_1/points.jpg"><img src="scenes/apartment_1/points.jpg" alt="apartment_1 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/apartment_1/s2_ts_est_0.jpg"><img src="scenes/apartment_1/s2_ts_est_0.jpg" alt="apartment_1 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/apartment_1/s2_ts_est_1.jpg"><img src="scenes/apartment_1/s2_ts_est_1.jpg" alt="apartment_1 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/apartment_1/s2_ts_est_2.jpg"><img src="scenes/apartment_1/s2_ts_est_2.jpg" alt="apartment_1 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/apartment_1/s2_ts_est_3.jpg"><img src="scenes/apartment_1/s2_ts_est_3.jpg" alt="apartment_1 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/apartment_1/s2_ts_sensor_0.jpg"><img src="scenes/apartment_1/s2_ts_sensor_0.jpg" alt="apartment_1 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/apartment_1/s2_ts_sensor_1.jpg"><img src="scenes/apartment_1/s2_ts_sensor_1.jpg" alt="apartment_1 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/apartment_1/s2_ts_sensor_2.jpg"><img src="scenes/apartment_1/s2_ts_sensor_2.jpg" alt="apartment_1 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/apartment_1/s2_ts_sensor_3.jpg"><img src="scenes/apartment_1/s2_ts_sensor_3.jpg" alt="apartment_1 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/apartment_1/s2_genrecon_0.jpg"><img src="scenes/apartment_1/s2_genrecon_0.jpg" alt="apartment_1 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_genrecon_1.jpg"><img src="scenes/apartment_1/s2_genrecon_1.jpg" alt="apartment_1 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_genrecon_2.jpg"><img src="scenes/apartment_1/s2_genrecon_2.jpg" alt="apartment_1 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_genrecon_3.jpg"><img src="scenes/apartment_1/s2_genrecon_3.jpg" alt="apartment_1 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/apartment_1/s2_da3_0.jpg"><img src="scenes/apartment_1/s2_da3_0.jpg" alt="apartment_1 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_da3_1.jpg"><img src="scenes/apartment_1/s2_da3_1.jpg" alt="apartment_1 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_da3_2.jpg"><img src="scenes/apartment_1/s2_da3_2.jpg" alt="apartment_1 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_da3_3.jpg"><img src="scenes/apartment_1/s2_da3_3.jpg" alt="apartment_1 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/apartment_1/s2_vggt_0.jpg"><img src="scenes/apartment_1/s2_vggt_0.jpg" alt="apartment_1 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_vggt_1.jpg"><img src="scenes/apartment_1/s2_vggt_1.jpg" alt="apartment_1 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_vggt_2.jpg"><img src="scenes/apartment_1/s2_vggt_2.jpg" alt="apartment_1 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_vggt_3.jpg"><img src="scenes/apartment_1/s2_vggt_3.jpg" alt="apartment_1 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/apartment_1/s2_lingbot_0.jpg"><img src="scenes/apartment_1/s2_lingbot_0.jpg" alt="apartment_1 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_lingbot_1.jpg"><img src="scenes/apartment_1/s2_lingbot_1.jpg" alt="apartment_1 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_lingbot_2.jpg"><img src="scenes/apartment_1/s2_lingbot_2.jpg" alt="apartment_1 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_lingbot_3.jpg"><img src="scenes/apartment_1/s2_lingbot_3.jpg" alt="apartment_1 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/apartment_1/s2_finerecon_0.jpg"><img src="scenes/apartment_1/s2_finerecon_0.jpg" alt="apartment_1 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_finerecon_1.jpg"><img src="scenes/apartment_1/s2_finerecon_1.jpg" alt="apartment_1 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_finerecon_2.jpg"><img src="scenes/apartment_1/s2_finerecon_2.jpg" alt="apartment_1 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_finerecon_3.jpg"><img src="scenes/apartment_1/s2_finerecon_3.jpg" alt="apartment_1 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/apartment_1/s2_murre_0.jpg"><img src="scenes/apartment_1/s2_murre_0.jpg" alt="apartment_1 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_murre_1.jpg"><img src="scenes/apartment_1/s2_murre_1.jpg" alt="apartment_1 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_murre_2.jpg"><img src="scenes/apartment_1/s2_murre_2.jpg" alt="apartment_1 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/apartment_1/s2_murre_3.jpg"><img src="scenes/apartment_1/s2_murre_3.jpg" alt="apartment_1 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/apartment_1/s2_gt_0.jpg"><img src="scenes/apartment_1/s2_gt_0.jpg" alt="apartment_1 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/apartment_1/s2_gt_1.jpg"><img src="scenes/apartment_1/s2_gt_1.jpg" alt="apartment_1 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/apartment_1/s2_gt_2.jpg"><img src="scenes/apartment_1/s2_gt_2.jpg" alt="apartment_1 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/apartment_1/s2_gt_3.jpg"><img src="scenes/apartment_1/s2_gt_3.jpg" alt="apartment_1 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-frl_apartment_0">frl_apartment_0</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/frl_apartment_0/inputs/view_0.jpg"><img src="scenes/frl_apartment_0/inputs/view_0.jpg" alt="frl_apartment_0 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_1.jpg"><img src="scenes/frl_apartment_0/inputs/view_1.jpg" alt="frl_apartment_0 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_2.jpg"><img src="scenes/frl_apartment_0/inputs/view_2.jpg" alt="frl_apartment_0 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_3.jpg"><img src="scenes/frl_apartment_0/inputs/view_3.jpg" alt="frl_apartment_0 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_4.jpg"><img src="scenes/frl_apartment_0/inputs/view_4.jpg" alt="frl_apartment_0 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_0/inputs/view_5.jpg"><img src="scenes/frl_apartment_0/inputs/view_5.jpg" alt="frl_apartment_0 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/frl_apartment_0/points.jpg"><img src="scenes/frl_apartment_0/points.jpg" alt="frl_apartment_0 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_0/s2_ts_est_0.jpg"><img src="scenes/frl_apartment_0/s2_ts_est_0.jpg" alt="frl_apartment_0 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_0/s2_ts_est_1.jpg"><img src="scenes/frl_apartment_0/s2_ts_est_1.jpg" alt="frl_apartment_0 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_0/s2_ts_est_2.jpg"><img src="scenes/frl_apartment_0/s2_ts_est_2.jpg" alt="frl_apartment_0 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_0/s2_ts_est_3.jpg"><img src="scenes/frl_apartment_0/s2_ts_est_3.jpg" alt="frl_apartment_0 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_0/s2_ts_sensor_0.jpg"><img src="scenes/frl_apartment_0/s2_ts_sensor_0.jpg" alt="frl_apartment_0 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_0/s2_ts_sensor_1.jpg"><img src="scenes/frl_apartment_0/s2_ts_sensor_1.jpg" alt="frl_apartment_0 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_0/s2_ts_sensor_2.jpg"><img src="scenes/frl_apartment_0/s2_ts_sensor_2.jpg" alt="frl_apartment_0 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_0/s2_ts_sensor_3.jpg"><img src="scenes/frl_apartment_0/s2_ts_sensor_3.jpg" alt="frl_apartment_0 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_genrecon_0.jpg"><img src="scenes/frl_apartment_0/s2_genrecon_0.jpg" alt="frl_apartment_0 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_genrecon_1.jpg"><img src="scenes/frl_apartment_0/s2_genrecon_1.jpg" alt="frl_apartment_0 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_genrecon_2.jpg"><img src="scenes/frl_apartment_0/s2_genrecon_2.jpg" alt="frl_apartment_0 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_genrecon_3.jpg"><img src="scenes/frl_apartment_0/s2_genrecon_3.jpg" alt="frl_apartment_0 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_da3_0.jpg"><img src="scenes/frl_apartment_0/s2_da3_0.jpg" alt="frl_apartment_0 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_da3_1.jpg"><img src="scenes/frl_apartment_0/s2_da3_1.jpg" alt="frl_apartment_0 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_da3_2.jpg"><img src="scenes/frl_apartment_0/s2_da3_2.jpg" alt="frl_apartment_0 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_da3_3.jpg"><img src="scenes/frl_apartment_0/s2_da3_3.jpg" alt="frl_apartment_0 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_vggt_0.jpg"><img src="scenes/frl_apartment_0/s2_vggt_0.jpg" alt="frl_apartment_0 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_vggt_1.jpg"><img src="scenes/frl_apartment_0/s2_vggt_1.jpg" alt="frl_apartment_0 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_vggt_2.jpg"><img src="scenes/frl_apartment_0/s2_vggt_2.jpg" alt="frl_apartment_0 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_vggt_3.jpg"><img src="scenes/frl_apartment_0/s2_vggt_3.jpg" alt="frl_apartment_0 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_lingbot_0.jpg"><img src="scenes/frl_apartment_0/s2_lingbot_0.jpg" alt="frl_apartment_0 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_lingbot_1.jpg"><img src="scenes/frl_apartment_0/s2_lingbot_1.jpg" alt="frl_apartment_0 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_lingbot_2.jpg"><img src="scenes/frl_apartment_0/s2_lingbot_2.jpg" alt="frl_apartment_0 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_lingbot_3.jpg"><img src="scenes/frl_apartment_0/s2_lingbot_3.jpg" alt="frl_apartment_0 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_finerecon_0.jpg"><img src="scenes/frl_apartment_0/s2_finerecon_0.jpg" alt="frl_apartment_0 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_finerecon_1.jpg"><img src="scenes/frl_apartment_0/s2_finerecon_1.jpg" alt="frl_apartment_0 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_finerecon_2.jpg"><img src="scenes/frl_apartment_0/s2_finerecon_2.jpg" alt="frl_apartment_0 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_finerecon_3.jpg"><img src="scenes/frl_apartment_0/s2_finerecon_3.jpg" alt="frl_apartment_0 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_murre_0.jpg"><img src="scenes/frl_apartment_0/s2_murre_0.jpg" alt="frl_apartment_0 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_murre_1.jpg"><img src="scenes/frl_apartment_0/s2_murre_1.jpg" alt="frl_apartment_0 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_murre_2.jpg"><img src="scenes/frl_apartment_0/s2_murre_2.jpg" alt="frl_apartment_0 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_0/s2_murre_3.jpg"><img src="scenes/frl_apartment_0/s2_murre_3.jpg" alt="frl_apartment_0 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/frl_apartment_0/s2_gt_0.jpg"><img src="scenes/frl_apartment_0/s2_gt_0.jpg" alt="frl_apartment_0 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_0/s2_gt_1.jpg"><img src="scenes/frl_apartment_0/s2_gt_1.jpg" alt="frl_apartment_0 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_0/s2_gt_2.jpg"><img src="scenes/frl_apartment_0/s2_gt_2.jpg" alt="frl_apartment_0 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_0/s2_gt_3.jpg"><img src="scenes/frl_apartment_0/s2_gt_3.jpg" alt="frl_apartment_0 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-frl_apartment_1">frl_apartment_1</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/frl_apartment_1/inputs/view_0.jpg"><img src="scenes/frl_apartment_1/inputs/view_0.jpg" alt="frl_apartment_1 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_1.jpg"><img src="scenes/frl_apartment_1/inputs/view_1.jpg" alt="frl_apartment_1 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_2.jpg"><img src="scenes/frl_apartment_1/inputs/view_2.jpg" alt="frl_apartment_1 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_3.jpg"><img src="scenes/frl_apartment_1/inputs/view_3.jpg" alt="frl_apartment_1 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_4.jpg"><img src="scenes/frl_apartment_1/inputs/view_4.jpg" alt="frl_apartment_1 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_1/inputs/view_5.jpg"><img src="scenes/frl_apartment_1/inputs/view_5.jpg" alt="frl_apartment_1 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/frl_apartment_1/points.jpg"><img src="scenes/frl_apartment_1/points.jpg" alt="frl_apartment_1 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_1/s2_ts_est_0.jpg"><img src="scenes/frl_apartment_1/s2_ts_est_0.jpg" alt="frl_apartment_1 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_1/s2_ts_est_1.jpg"><img src="scenes/frl_apartment_1/s2_ts_est_1.jpg" alt="frl_apartment_1 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_1/s2_ts_est_2.jpg"><img src="scenes/frl_apartment_1/s2_ts_est_2.jpg" alt="frl_apartment_1 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_1/s2_ts_est_3.jpg"><img src="scenes/frl_apartment_1/s2_ts_est_3.jpg" alt="frl_apartment_1 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_1/s2_ts_sensor_0.jpg"><img src="scenes/frl_apartment_1/s2_ts_sensor_0.jpg" alt="frl_apartment_1 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_1/s2_ts_sensor_1.jpg"><img src="scenes/frl_apartment_1/s2_ts_sensor_1.jpg" alt="frl_apartment_1 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_1/s2_ts_sensor_2.jpg"><img src="scenes/frl_apartment_1/s2_ts_sensor_2.jpg" alt="frl_apartment_1 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_1/s2_ts_sensor_3.jpg"><img src="scenes/frl_apartment_1/s2_ts_sensor_3.jpg" alt="frl_apartment_1 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_genrecon_0.jpg"><img src="scenes/frl_apartment_1/s2_genrecon_0.jpg" alt="frl_apartment_1 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_genrecon_1.jpg"><img src="scenes/frl_apartment_1/s2_genrecon_1.jpg" alt="frl_apartment_1 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_genrecon_2.jpg"><img src="scenes/frl_apartment_1/s2_genrecon_2.jpg" alt="frl_apartment_1 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_genrecon_3.jpg"><img src="scenes/frl_apartment_1/s2_genrecon_3.jpg" alt="frl_apartment_1 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_da3_0.jpg"><img src="scenes/frl_apartment_1/s2_da3_0.jpg" alt="frl_apartment_1 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_da3_1.jpg"><img src="scenes/frl_apartment_1/s2_da3_1.jpg" alt="frl_apartment_1 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_da3_2.jpg"><img src="scenes/frl_apartment_1/s2_da3_2.jpg" alt="frl_apartment_1 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_da3_3.jpg"><img src="scenes/frl_apartment_1/s2_da3_3.jpg" alt="frl_apartment_1 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_vggt_0.jpg"><img src="scenes/frl_apartment_1/s2_vggt_0.jpg" alt="frl_apartment_1 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_vggt_1.jpg"><img src="scenes/frl_apartment_1/s2_vggt_1.jpg" alt="frl_apartment_1 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_vggt_2.jpg"><img src="scenes/frl_apartment_1/s2_vggt_2.jpg" alt="frl_apartment_1 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_vggt_3.jpg"><img src="scenes/frl_apartment_1/s2_vggt_3.jpg" alt="frl_apartment_1 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_lingbot_0.jpg"><img src="scenes/frl_apartment_1/s2_lingbot_0.jpg" alt="frl_apartment_1 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_lingbot_1.jpg"><img src="scenes/frl_apartment_1/s2_lingbot_1.jpg" alt="frl_apartment_1 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_lingbot_2.jpg"><img src="scenes/frl_apartment_1/s2_lingbot_2.jpg" alt="frl_apartment_1 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_lingbot_3.jpg"><img src="scenes/frl_apartment_1/s2_lingbot_3.jpg" alt="frl_apartment_1 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_finerecon_0.jpg"><img src="scenes/frl_apartment_1/s2_finerecon_0.jpg" alt="frl_apartment_1 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_finerecon_1.jpg"><img src="scenes/frl_apartment_1/s2_finerecon_1.jpg" alt="frl_apartment_1 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_finerecon_2.jpg"><img src="scenes/frl_apartment_1/s2_finerecon_2.jpg" alt="frl_apartment_1 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_finerecon_3.jpg"><img src="scenes/frl_apartment_1/s2_finerecon_3.jpg" alt="frl_apartment_1 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_murre_0.jpg"><img src="scenes/frl_apartment_1/s2_murre_0.jpg" alt="frl_apartment_1 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_murre_1.jpg"><img src="scenes/frl_apartment_1/s2_murre_1.jpg" alt="frl_apartment_1 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_murre_2.jpg"><img src="scenes/frl_apartment_1/s2_murre_2.jpg" alt="frl_apartment_1 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_1/s2_murre_3.jpg"><img src="scenes/frl_apartment_1/s2_murre_3.jpg" alt="frl_apartment_1 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/frl_apartment_1/s2_gt_0.jpg"><img src="scenes/frl_apartment_1/s2_gt_0.jpg" alt="frl_apartment_1 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_1/s2_gt_1.jpg"><img src="scenes/frl_apartment_1/s2_gt_1.jpg" alt="frl_apartment_1 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_1/s2_gt_2.jpg"><img src="scenes/frl_apartment_1/s2_gt_2.jpg" alt="frl_apartment_1 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_1/s2_gt_3.jpg"><img src="scenes/frl_apartment_1/s2_gt_3.jpg" alt="frl_apartment_1 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-frl_apartment_2">frl_apartment_2</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/frl_apartment_2/inputs/view_0.jpg"><img src="scenes/frl_apartment_2/inputs/view_0.jpg" alt="frl_apartment_2 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_1.jpg"><img src="scenes/frl_apartment_2/inputs/view_1.jpg" alt="frl_apartment_2 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_2.jpg"><img src="scenes/frl_apartment_2/inputs/view_2.jpg" alt="frl_apartment_2 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_3.jpg"><img src="scenes/frl_apartment_2/inputs/view_3.jpg" alt="frl_apartment_2 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_4.jpg"><img src="scenes/frl_apartment_2/inputs/view_4.jpg" alt="frl_apartment_2 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_2/inputs/view_5.jpg"><img src="scenes/frl_apartment_2/inputs/view_5.jpg" alt="frl_apartment_2 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/frl_apartment_2/points.jpg"><img src="scenes/frl_apartment_2/points.jpg" alt="frl_apartment_2 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_2/s2_ts_est_0.jpg"><img src="scenes/frl_apartment_2/s2_ts_est_0.jpg" alt="frl_apartment_2 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_2/s2_ts_est_1.jpg"><img src="scenes/frl_apartment_2/s2_ts_est_1.jpg" alt="frl_apartment_2 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_2/s2_ts_est_2.jpg"><img src="scenes/frl_apartment_2/s2_ts_est_2.jpg" alt="frl_apartment_2 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_2/s2_ts_est_3.jpg"><img src="scenes/frl_apartment_2/s2_ts_est_3.jpg" alt="frl_apartment_2 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_2/s2_ts_sensor_0.jpg"><img src="scenes/frl_apartment_2/s2_ts_sensor_0.jpg" alt="frl_apartment_2 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_2/s2_ts_sensor_1.jpg"><img src="scenes/frl_apartment_2/s2_ts_sensor_1.jpg" alt="frl_apartment_2 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_2/s2_ts_sensor_2.jpg"><img src="scenes/frl_apartment_2/s2_ts_sensor_2.jpg" alt="frl_apartment_2 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_2/s2_ts_sensor_3.jpg"><img src="scenes/frl_apartment_2/s2_ts_sensor_3.jpg" alt="frl_apartment_2 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_genrecon_0.jpg"><img src="scenes/frl_apartment_2/s2_genrecon_0.jpg" alt="frl_apartment_2 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_genrecon_1.jpg"><img src="scenes/frl_apartment_2/s2_genrecon_1.jpg" alt="frl_apartment_2 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_genrecon_2.jpg"><img src="scenes/frl_apartment_2/s2_genrecon_2.jpg" alt="frl_apartment_2 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_genrecon_3.jpg"><img src="scenes/frl_apartment_2/s2_genrecon_3.jpg" alt="frl_apartment_2 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_da3_0.jpg"><img src="scenes/frl_apartment_2/s2_da3_0.jpg" alt="frl_apartment_2 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_da3_1.jpg"><img src="scenes/frl_apartment_2/s2_da3_1.jpg" alt="frl_apartment_2 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_da3_2.jpg"><img src="scenes/frl_apartment_2/s2_da3_2.jpg" alt="frl_apartment_2 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_da3_3.jpg"><img src="scenes/frl_apartment_2/s2_da3_3.jpg" alt="frl_apartment_2 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_vggt_0.jpg"><img src="scenes/frl_apartment_2/s2_vggt_0.jpg" alt="frl_apartment_2 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_vggt_1.jpg"><img src="scenes/frl_apartment_2/s2_vggt_1.jpg" alt="frl_apartment_2 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_vggt_2.jpg"><img src="scenes/frl_apartment_2/s2_vggt_2.jpg" alt="frl_apartment_2 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_vggt_3.jpg"><img src="scenes/frl_apartment_2/s2_vggt_3.jpg" alt="frl_apartment_2 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_lingbot_0.jpg"><img src="scenes/frl_apartment_2/s2_lingbot_0.jpg" alt="frl_apartment_2 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_lingbot_1.jpg"><img src="scenes/frl_apartment_2/s2_lingbot_1.jpg" alt="frl_apartment_2 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_lingbot_2.jpg"><img src="scenes/frl_apartment_2/s2_lingbot_2.jpg" alt="frl_apartment_2 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_lingbot_3.jpg"><img src="scenes/frl_apartment_2/s2_lingbot_3.jpg" alt="frl_apartment_2 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_finerecon_0.jpg"><img src="scenes/frl_apartment_2/s2_finerecon_0.jpg" alt="frl_apartment_2 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_finerecon_1.jpg"><img src="scenes/frl_apartment_2/s2_finerecon_1.jpg" alt="frl_apartment_2 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_finerecon_2.jpg"><img src="scenes/frl_apartment_2/s2_finerecon_2.jpg" alt="frl_apartment_2 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_finerecon_3.jpg"><img src="scenes/frl_apartment_2/s2_finerecon_3.jpg" alt="frl_apartment_2 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_murre_0.jpg"><img src="scenes/frl_apartment_2/s2_murre_0.jpg" alt="frl_apartment_2 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_murre_1.jpg"><img src="scenes/frl_apartment_2/s2_murre_1.jpg" alt="frl_apartment_2 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_murre_2.jpg"><img src="scenes/frl_apartment_2/s2_murre_2.jpg" alt="frl_apartment_2 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_2/s2_murre_3.jpg"><img src="scenes/frl_apartment_2/s2_murre_3.jpg" alt="frl_apartment_2 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/frl_apartment_2/s2_gt_0.jpg"><img src="scenes/frl_apartment_2/s2_gt_0.jpg" alt="frl_apartment_2 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_2/s2_gt_1.jpg"><img src="scenes/frl_apartment_2/s2_gt_1.jpg" alt="frl_apartment_2 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_2/s2_gt_2.jpg"><img src="scenes/frl_apartment_2/s2_gt_2.jpg" alt="frl_apartment_2 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_2/s2_gt_3.jpg"><img src="scenes/frl_apartment_2/s2_gt_3.jpg" alt="frl_apartment_2 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-frl_apartment_3">frl_apartment_3</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/frl_apartment_3/inputs/view_0.jpg"><img src="scenes/frl_apartment_3/inputs/view_0.jpg" alt="frl_apartment_3 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_1.jpg"><img src="scenes/frl_apartment_3/inputs/view_1.jpg" alt="frl_apartment_3 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_2.jpg"><img src="scenes/frl_apartment_3/inputs/view_2.jpg" alt="frl_apartment_3 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_3.jpg"><img src="scenes/frl_apartment_3/inputs/view_3.jpg" alt="frl_apartment_3 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_4.jpg"><img src="scenes/frl_apartment_3/inputs/view_4.jpg" alt="frl_apartment_3 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_3/inputs/view_5.jpg"><img src="scenes/frl_apartment_3/inputs/view_5.jpg" alt="frl_apartment_3 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/frl_apartment_3/points.jpg"><img src="scenes/frl_apartment_3/points.jpg" alt="frl_apartment_3 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_3/s2_ts_est_0.jpg"><img src="scenes/frl_apartment_3/s2_ts_est_0.jpg" alt="frl_apartment_3 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_3/s2_ts_est_1.jpg"><img src="scenes/frl_apartment_3/s2_ts_est_1.jpg" alt="frl_apartment_3 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_3/s2_ts_est_2.jpg"><img src="scenes/frl_apartment_3/s2_ts_est_2.jpg" alt="frl_apartment_3 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_3/s2_ts_est_3.jpg"><img src="scenes/frl_apartment_3/s2_ts_est_3.jpg" alt="frl_apartment_3 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_3/s2_ts_sensor_0.jpg"><img src="scenes/frl_apartment_3/s2_ts_sensor_0.jpg" alt="frl_apartment_3 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_3/s2_ts_sensor_1.jpg"><img src="scenes/frl_apartment_3/s2_ts_sensor_1.jpg" alt="frl_apartment_3 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_3/s2_ts_sensor_2.jpg"><img src="scenes/frl_apartment_3/s2_ts_sensor_2.jpg" alt="frl_apartment_3 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_3/s2_ts_sensor_3.jpg"><img src="scenes/frl_apartment_3/s2_ts_sensor_3.jpg" alt="frl_apartment_3 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_genrecon_0.jpg"><img src="scenes/frl_apartment_3/s2_genrecon_0.jpg" alt="frl_apartment_3 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_genrecon_1.jpg"><img src="scenes/frl_apartment_3/s2_genrecon_1.jpg" alt="frl_apartment_3 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_genrecon_2.jpg"><img src="scenes/frl_apartment_3/s2_genrecon_2.jpg" alt="frl_apartment_3 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_genrecon_3.jpg"><img src="scenes/frl_apartment_3/s2_genrecon_3.jpg" alt="frl_apartment_3 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_da3_0.jpg"><img src="scenes/frl_apartment_3/s2_da3_0.jpg" alt="frl_apartment_3 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_da3_1.jpg"><img src="scenes/frl_apartment_3/s2_da3_1.jpg" alt="frl_apartment_3 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_da3_2.jpg"><img src="scenes/frl_apartment_3/s2_da3_2.jpg" alt="frl_apartment_3 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_da3_3.jpg"><img src="scenes/frl_apartment_3/s2_da3_3.jpg" alt="frl_apartment_3 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_vggt_0.jpg"><img src="scenes/frl_apartment_3/s2_vggt_0.jpg" alt="frl_apartment_3 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_vggt_1.jpg"><img src="scenes/frl_apartment_3/s2_vggt_1.jpg" alt="frl_apartment_3 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_vggt_2.jpg"><img src="scenes/frl_apartment_3/s2_vggt_2.jpg" alt="frl_apartment_3 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_vggt_3.jpg"><img src="scenes/frl_apartment_3/s2_vggt_3.jpg" alt="frl_apartment_3 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_lingbot_0.jpg"><img src="scenes/frl_apartment_3/s2_lingbot_0.jpg" alt="frl_apartment_3 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_lingbot_1.jpg"><img src="scenes/frl_apartment_3/s2_lingbot_1.jpg" alt="frl_apartment_3 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_lingbot_2.jpg"><img src="scenes/frl_apartment_3/s2_lingbot_2.jpg" alt="frl_apartment_3 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_lingbot_3.jpg"><img src="scenes/frl_apartment_3/s2_lingbot_3.jpg" alt="frl_apartment_3 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_finerecon_0.jpg"><img src="scenes/frl_apartment_3/s2_finerecon_0.jpg" alt="frl_apartment_3 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_finerecon_1.jpg"><img src="scenes/frl_apartment_3/s2_finerecon_1.jpg" alt="frl_apartment_3 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_finerecon_2.jpg"><img src="scenes/frl_apartment_3/s2_finerecon_2.jpg" alt="frl_apartment_3 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_finerecon_3.jpg"><img src="scenes/frl_apartment_3/s2_finerecon_3.jpg" alt="frl_apartment_3 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_murre_0.jpg"><img src="scenes/frl_apartment_3/s2_murre_0.jpg" alt="frl_apartment_3 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_murre_1.jpg"><img src="scenes/frl_apartment_3/s2_murre_1.jpg" alt="frl_apartment_3 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_murre_2.jpg"><img src="scenes/frl_apartment_3/s2_murre_2.jpg" alt="frl_apartment_3 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_3/s2_murre_3.jpg"><img src="scenes/frl_apartment_3/s2_murre_3.jpg" alt="frl_apartment_3 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/frl_apartment_3/s2_gt_0.jpg"><img src="scenes/frl_apartment_3/s2_gt_0.jpg" alt="frl_apartment_3 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_3/s2_gt_1.jpg"><img src="scenes/frl_apartment_3/s2_gt_1.jpg" alt="frl_apartment_3 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_3/s2_gt_2.jpg"><img src="scenes/frl_apartment_3/s2_gt_2.jpg" alt="frl_apartment_3 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_3/s2_gt_3.jpg"><img src="scenes/frl_apartment_3/s2_gt_3.jpg" alt="frl_apartment_3 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-frl_apartment_4">frl_apartment_4</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/frl_apartment_4/inputs/view_0.jpg"><img src="scenes/frl_apartment_4/inputs/view_0.jpg" alt="frl_apartment_4 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_1.jpg"><img src="scenes/frl_apartment_4/inputs/view_1.jpg" alt="frl_apartment_4 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_2.jpg"><img src="scenes/frl_apartment_4/inputs/view_2.jpg" alt="frl_apartment_4 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_3.jpg"><img src="scenes/frl_apartment_4/inputs/view_3.jpg" alt="frl_apartment_4 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_4.jpg"><img src="scenes/frl_apartment_4/inputs/view_4.jpg" alt="frl_apartment_4 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_4/inputs/view_5.jpg"><img src="scenes/frl_apartment_4/inputs/view_5.jpg" alt="frl_apartment_4 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/frl_apartment_4/points.jpg"><img src="scenes/frl_apartment_4/points.jpg" alt="frl_apartment_4 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_4/s2_ts_est_0.jpg"><img src="scenes/frl_apartment_4/s2_ts_est_0.jpg" alt="frl_apartment_4 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_4/s2_ts_est_1.jpg"><img src="scenes/frl_apartment_4/s2_ts_est_1.jpg" alt="frl_apartment_4 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_4/s2_ts_est_2.jpg"><img src="scenes/frl_apartment_4/s2_ts_est_2.jpg" alt="frl_apartment_4 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_4/s2_ts_est_3.jpg"><img src="scenes/frl_apartment_4/s2_ts_est_3.jpg" alt="frl_apartment_4 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_4/s2_ts_sensor_0.jpg"><img src="scenes/frl_apartment_4/s2_ts_sensor_0.jpg" alt="frl_apartment_4 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_4/s2_ts_sensor_1.jpg"><img src="scenes/frl_apartment_4/s2_ts_sensor_1.jpg" alt="frl_apartment_4 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_4/s2_ts_sensor_2.jpg"><img src="scenes/frl_apartment_4/s2_ts_sensor_2.jpg" alt="frl_apartment_4 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_4/s2_ts_sensor_3.jpg"><img src="scenes/frl_apartment_4/s2_ts_sensor_3.jpg" alt="frl_apartment_4 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_genrecon_0.jpg"><img src="scenes/frl_apartment_4/s2_genrecon_0.jpg" alt="frl_apartment_4 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_genrecon_1.jpg"><img src="scenes/frl_apartment_4/s2_genrecon_1.jpg" alt="frl_apartment_4 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_genrecon_2.jpg"><img src="scenes/frl_apartment_4/s2_genrecon_2.jpg" alt="frl_apartment_4 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_genrecon_3.jpg"><img src="scenes/frl_apartment_4/s2_genrecon_3.jpg" alt="frl_apartment_4 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_da3_0.jpg"><img src="scenes/frl_apartment_4/s2_da3_0.jpg" alt="frl_apartment_4 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_da3_1.jpg"><img src="scenes/frl_apartment_4/s2_da3_1.jpg" alt="frl_apartment_4 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_da3_2.jpg"><img src="scenes/frl_apartment_4/s2_da3_2.jpg" alt="frl_apartment_4 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_da3_3.jpg"><img src="scenes/frl_apartment_4/s2_da3_3.jpg" alt="frl_apartment_4 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_vggt_0.jpg"><img src="scenes/frl_apartment_4/s2_vggt_0.jpg" alt="frl_apartment_4 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_vggt_1.jpg"><img src="scenes/frl_apartment_4/s2_vggt_1.jpg" alt="frl_apartment_4 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_vggt_2.jpg"><img src="scenes/frl_apartment_4/s2_vggt_2.jpg" alt="frl_apartment_4 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_vggt_3.jpg"><img src="scenes/frl_apartment_4/s2_vggt_3.jpg" alt="frl_apartment_4 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_lingbot_0.jpg"><img src="scenes/frl_apartment_4/s2_lingbot_0.jpg" alt="frl_apartment_4 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_lingbot_1.jpg"><img src="scenes/frl_apartment_4/s2_lingbot_1.jpg" alt="frl_apartment_4 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_lingbot_2.jpg"><img src="scenes/frl_apartment_4/s2_lingbot_2.jpg" alt="frl_apartment_4 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_lingbot_3.jpg"><img src="scenes/frl_apartment_4/s2_lingbot_3.jpg" alt="frl_apartment_4 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_finerecon_0.jpg"><img src="scenes/frl_apartment_4/s2_finerecon_0.jpg" alt="frl_apartment_4 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_finerecon_1.jpg"><img src="scenes/frl_apartment_4/s2_finerecon_1.jpg" alt="frl_apartment_4 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_finerecon_2.jpg"><img src="scenes/frl_apartment_4/s2_finerecon_2.jpg" alt="frl_apartment_4 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_finerecon_3.jpg"><img src="scenes/frl_apartment_4/s2_finerecon_3.jpg" alt="frl_apartment_4 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_murre_0.jpg"><img src="scenes/frl_apartment_4/s2_murre_0.jpg" alt="frl_apartment_4 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_murre_1.jpg"><img src="scenes/frl_apartment_4/s2_murre_1.jpg" alt="frl_apartment_4 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_murre_2.jpg"><img src="scenes/frl_apartment_4/s2_murre_2.jpg" alt="frl_apartment_4 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_4/s2_murre_3.jpg"><img src="scenes/frl_apartment_4/s2_murre_3.jpg" alt="frl_apartment_4 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/frl_apartment_4/s2_gt_0.jpg"><img src="scenes/frl_apartment_4/s2_gt_0.jpg" alt="frl_apartment_4 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_4/s2_gt_1.jpg"><img src="scenes/frl_apartment_4/s2_gt_1.jpg" alt="frl_apartment_4 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_4/s2_gt_2.jpg"><img src="scenes/frl_apartment_4/s2_gt_2.jpg" alt="frl_apartment_4 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_4/s2_gt_3.jpg"><img src="scenes/frl_apartment_4/s2_gt_3.jpg" alt="frl_apartment_4 GT view 3" loading="lazy"></a></div>
+</div>
+<h3 id="s2-frl_apartment_5">frl_apartment_5</h3>
+<div class="s2top"><div><div class="inputs">
+<a href="scenes/frl_apartment_5/inputs/view_0.jpg"><img src="scenes/frl_apartment_5/inputs/view_0.jpg" alt="frl_apartment_5 input view 0" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_1.jpg"><img src="scenes/frl_apartment_5/inputs/view_1.jpg" alt="frl_apartment_5 input view 1" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_2.jpg"><img src="scenes/frl_apartment_5/inputs/view_2.jpg" alt="frl_apartment_5 input view 2" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_3.jpg"><img src="scenes/frl_apartment_5/inputs/view_3.jpg" alt="frl_apartment_5 input view 3" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_4.jpg"><img src="scenes/frl_apartment_5/inputs/view_4.jpg" alt="frl_apartment_5 input view 4" loading="lazy"></a>
+<a href="scenes/frl_apartment_5/inputs/view_5.jpg"><img src="scenes/frl_apartment_5/inputs/view_5.jpg" alt="frl_apartment_5 input view 5" loading="lazy"></a>
+</div><div class="lbl"><b>Input views</b> · same 6 as Section 1</div></div>
+<div><a href="scenes/frl_apartment_5/points.jpg"><img src="scenes/frl_apartment_5/points.jpg" alt="frl_apartment_5 VGGT points" loading="lazy"></a><div class="lbl"><b>Input points</b></div></div></div>
+<div class="s2">
+<div class="rl"></div>
+<div class="lbl">held-out view 0</div>
+<div class="lbl">held-out view 1</div>
+<div class="lbl">held-out view 2</div>
+<div class="lbl">held-out view 3</div>
+<div class="rl"><b>Complete3D-TS (estimated depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_5/s2_ts_est_0.jpg"><img src="scenes/frl_apartment_5/s2_ts_est_0.jpg" alt="frl_apartment_5 Complete3D-TS (estimated depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_5/s2_ts_est_1.jpg"><img src="scenes/frl_apartment_5/s2_ts_est_1.jpg" alt="frl_apartment_5 Complete3D-TS (estimated depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_5/s2_ts_est_2.jpg"><img src="scenes/frl_apartment_5/s2_ts_est_2.jpg" alt="frl_apartment_5 Complete3D-TS (estimated depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_5/s2_ts_est_3.jpg"><img src="scenes/frl_apartment_5/s2_ts_est_3.jpg" alt="frl_apartment_5 Complete3D-TS (estimated depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Complete3D-TS (sensor depth)</b></div>
+<div class="m ours"><a href="scenes/frl_apartment_5/s2_ts_sensor_0.jpg"><img src="scenes/frl_apartment_5/s2_ts_sensor_0.jpg" alt="frl_apartment_5 Complete3D-TS (sensor depth) view 0" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_5/s2_ts_sensor_1.jpg"><img src="scenes/frl_apartment_5/s2_ts_sensor_1.jpg" alt="frl_apartment_5 Complete3D-TS (sensor depth) view 1" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_5/s2_ts_sensor_2.jpg"><img src="scenes/frl_apartment_5/s2_ts_sensor_2.jpg" alt="frl_apartment_5 Complete3D-TS (sensor depth) view 2" loading="lazy"></a></div>
+<div class="m ours"><a href="scenes/frl_apartment_5/s2_ts_sensor_3.jpg"><img src="scenes/frl_apartment_5/s2_ts_sensor_3.jpg" alt="frl_apartment_5 Complete3D-TS (sensor depth) view 3" loading="lazy"></a></div>
+<div class="rl"><b>GenRecon</b></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_genrecon_0.jpg"><img src="scenes/frl_apartment_5/s2_genrecon_0.jpg" alt="frl_apartment_5 GenRecon view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_genrecon_1.jpg"><img src="scenes/frl_apartment_5/s2_genrecon_1.jpg" alt="frl_apartment_5 GenRecon view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_genrecon_2.jpg"><img src="scenes/frl_apartment_5/s2_genrecon_2.jpg" alt="frl_apartment_5 GenRecon view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_genrecon_3.jpg"><img src="scenes/frl_apartment_5/s2_genrecon_3.jpg" alt="frl_apartment_5 GenRecon view 3" loading="lazy"></a></div>
+<div class="rl"><b>DA3 + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_da3_0.jpg"><img src="scenes/frl_apartment_5/s2_da3_0.jpg" alt="frl_apartment_5 DA3 + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_da3_1.jpg"><img src="scenes/frl_apartment_5/s2_da3_1.jpg" alt="frl_apartment_5 DA3 + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_da3_2.jpg"><img src="scenes/frl_apartment_5/s2_da3_2.jpg" alt="frl_apartment_5 DA3 + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_da3_3.jpg"><img src="scenes/frl_apartment_5/s2_da3_3.jpg" alt="frl_apartment_5 DA3 + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>VGGT-Ω + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_vggt_0.jpg"><img src="scenes/frl_apartment_5/s2_vggt_0.jpg" alt="frl_apartment_5 VGGT-Ω + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_vggt_1.jpg"><img src="scenes/frl_apartment_5/s2_vggt_1.jpg" alt="frl_apartment_5 VGGT-Ω + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_vggt_2.jpg"><img src="scenes/frl_apartment_5/s2_vggt_2.jpg" alt="frl_apartment_5 VGGT-Ω + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_vggt_3.jpg"><img src="scenes/frl_apartment_5/s2_vggt_3.jpg" alt="frl_apartment_5 VGGT-Ω + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>LingBot-Map + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_lingbot_0.jpg"><img src="scenes/frl_apartment_5/s2_lingbot_0.jpg" alt="frl_apartment_5 LingBot-Map + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_lingbot_1.jpg"><img src="scenes/frl_apartment_5/s2_lingbot_1.jpg" alt="frl_apartment_5 LingBot-Map + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_lingbot_2.jpg"><img src="scenes/frl_apartment_5/s2_lingbot_2.jpg" alt="frl_apartment_5 LingBot-Map + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_lingbot_3.jpg"><img src="scenes/frl_apartment_5/s2_lingbot_3.jpg" alt="frl_apartment_5 LingBot-Map + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>FineRecon (centred 60°)</b></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_finerecon_0.jpg"><img src="scenes/frl_apartment_5/s2_finerecon_0.jpg" alt="frl_apartment_5 FineRecon (centred 60°) view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_finerecon_1.jpg"><img src="scenes/frl_apartment_5/s2_finerecon_1.jpg" alt="frl_apartment_5 FineRecon (centred 60°) view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_finerecon_2.jpg"><img src="scenes/frl_apartment_5/s2_finerecon_2.jpg" alt="frl_apartment_5 FineRecon (centred 60°) view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_finerecon_3.jpg"><img src="scenes/frl_apartment_5/s2_finerecon_3.jpg" alt="frl_apartment_5 FineRecon (centred 60°) view 3" loading="lazy"></a></div>
+<div class="rl"><b>Murre + TSDF</b></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_murre_0.jpg"><img src="scenes/frl_apartment_5/s2_murre_0.jpg" alt="frl_apartment_5 Murre + TSDF view 0" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_murre_1.jpg"><img src="scenes/frl_apartment_5/s2_murre_1.jpg" alt="frl_apartment_5 Murre + TSDF view 1" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_murre_2.jpg"><img src="scenes/frl_apartment_5/s2_murre_2.jpg" alt="frl_apartment_5 Murre + TSDF view 2" loading="lazy"></a></div>
+<div class="m"><a href="scenes/frl_apartment_5/s2_murre_3.jpg"><img src="scenes/frl_apartment_5/s2_murre_3.jpg" alt="frl_apartment_5 Murre + TSDF view 3" loading="lazy"></a></div>
+<div class="rl"><b>Ground truth</b></div>
+<div class="gt"><a href="scenes/frl_apartment_5/s2_gt_0.jpg"><img src="scenes/frl_apartment_5/s2_gt_0.jpg" alt="frl_apartment_5 GT view 0" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_5/s2_gt_1.jpg"><img src="scenes/frl_apartment_5/s2_gt_1.jpg" alt="frl_apartment_5 GT view 1" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_5/s2_gt_2.jpg"><img src="scenes/frl_apartment_5/s2_gt_2.jpg" alt="frl_apartment_5 GT view 2" loading="lazy"></a></div>
+<div class="gt"><a href="scenes/frl_apartment_5/s2_gt_3.jpg"><img src="scenes/frl_apartment_5/s2_gt_3.jpg" alt="frl_apartment_5 GT view 3" loading="lazy"></a></div>
+</div>
+<p class="note" style="margin-top:2.5rem">Complete3D-TS = stage-1 and stage-2 teacher–student models (D48), stock stage 3, no layout. Numbers for these scenes: Table 1, Replica block (envelope culling, n = 16).</p>
+</div>
+</body>
+</html>
